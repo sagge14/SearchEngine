@@ -13,13 +13,17 @@
 #include <mutex>
 #include <iostream>
 #include <atomic>
-
 using namespace std;
+
 typedef string basicString;
+typedef map<size_t,size_t> mapEntry;
 
 template <typename Time = chrono::seconds, typename Clock = chrono::high_resolution_clock>
 struct perf_timer
 {
+    /** Стркуктура повзволяющая получить время выполнения любой функции.
+     * Взято из книги "Решение задачна современном C++" Мариуса Бансила.
+     * */
     template <typename F, typename... Args>
     static Time duration(F&& f, Args... args)
     {
@@ -33,28 +37,27 @@ struct perf_timer
 class InvertedIndex {
 
     atomic<bool> work{};
-    map<basicString, map<size_t,size_t>> freqDictionary;
+    map<basicString, mapEntry> freqDictionary;
     vector<basicString> docPaths;
-    void fileIndexing(size_t fileInd);
-    void allFilesIndexing(size_t threadCount = 0);
-    void addToLog(const string& s) const;
     mutable mutex mapMutex;
     mutable mutex logMutex;
     mutable ofstream logFile;
 
     friend class SearchServer;
 
+    void fileIndexing(size_t fileInd);
+    void allFilesIndexing(size_t threadCount = 0);
+    void addToLog(const string& s) const;
+
 public:
 
-    void setDocPaths(vector<basicString> _docPaths) {docPaths = std::move(_docPaths);};
-
-    [[maybe_unused]] [[nodiscard]] vector<basicString> getDocPaths() const {return docPaths;}
-
+    [[maybe_unused]] void setDocPaths(vector<basicString> _docPaths) {docPaths = std::move(_docPaths);};
     void updateDocumentBase(size_t threadCount = 0);
 
     InvertedIndex() = default;
-
     [[maybe_unused]] explicit InvertedIndex(vector<basicString> _docPaths);
+
+    ~InvertedIndex() = default;
 
 };
 

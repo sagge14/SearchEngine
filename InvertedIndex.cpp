@@ -20,7 +20,7 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
     size_t size = docPaths.size();
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
     threadCount = size < threadCount ? size : threadCount;
-    size_t step = size / threadCount ? size / threadCount : 1;
+    size_t step = size / threadCount;
 
     vector<thread> vThreads;
 
@@ -41,10 +41,9 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
 
 void InvertedIndex::fileIndexing(size_t fileInd)
 {
-    if(filesystem::is_directory(docPaths.at(fileInd)))
-        return;
 
     ifstream file(docPaths.at(fileInd));
+
     if(!file.is_open())
     {
         addToLog("File " + docPaths.at(fileInd) + " - not found!");
@@ -91,7 +90,7 @@ void InvertedIndex::fileIndexing(size_t fileInd)
 void InvertedIndex::addToLog(const string &s) const {
 
     char dataTime[20];
-    time_t now = std::time(0);
+    time_t now = std::time(nullptr);
     strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
 
     std::lock_guard<std::mutex> myLock(logMutex);

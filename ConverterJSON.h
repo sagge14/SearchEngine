@@ -21,15 +21,11 @@ public:
 
     struct myExp : public std::exception
     {
-
     public:
         myExp() = default;
-        static void show ()
-        {
-            std::cout << "error pars settings" << std::endl;
-        }
-
+        static void show () { std::cout << "error pars settings" << std::endl;}
     };
+
     ConverterJSON() = default;
     static void setSettings(const Settings& val);
     static Settings getSettings(const std::string& jsonPath = "Settings.json");

@@ -2,16 +2,19 @@
 // Created by user on 02.02.2023.
 //
 #include "SearchServer.h"
-#include <cassert>
 
 vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
+
+    /** Функция получения всех файлов из дирректории @param dir исключая имена папок */
 
     namespace fs = std::filesystem;
     auto recursiveGetFileNamesByExtension = [](const string &path)
     {
         vector<string> _docPaths;
         for(auto& p: fs::recursive_directory_iterator(path))
-            // if(p.is_regular_file() && p.path().extension().compare(extension) == 0)
+             if(p.is_regular_file()
+             && p.path().extension().compare("txt") != 0
+             )
             _docPaths.push_back(p.path().string());
 
         return _docPaths;
@@ -20,9 +23,33 @@ vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
 
 }
 
-setFileInd SearchServer::unionSetFiles(const set<basicString> &request) const {
+setFileInd SearchServer::intersectionSetFiles(const setWords &request) const {
 
-   // std::lock_guard<std::mutex> myLock(Mutex);
+    /** В основе работы функции математическое понятие пересечения множеств (std::set)
+     * В начале мы проверяем каждое слово из запроса @param request на наличие в словаре @param freqDictionary
+     * и составляем лист @param wordList обьектов @param Word который хранит в себе все слова запроса и
+     * соответствующее каждому слову количество файлов где оно встречается.
+     * Если слово из запроса @param request не найдено в @param freqDictionary - то возвращается
+     * пустое множество - "return {}" и работа функции прекращается.
+     *
+     * Далее @param wordList сортируется по возрастанию количества документов в которых встречается поисковое слово,
+     * чтобы в начале списка были самые редкие слова, встречающиеся в наименьшем количеств документов.
+     *
+     * Далее выполняются пересечения множеств @param setFileInd - соответствующих каждому поисковому слову,
+     * получаемых с помощью лямбда-функции @param getSetFromMap из карты (std::map) @param freqDictionary  -
+     * где по ключу карты (поисковое слово) содержится map<size_t,size_t> где first - это индекс файла, а second
+     * количество сколько раз ключ карты (поисковое слово) @param freqDictionary содержится в файле с индексом first.
+     *
+     * Сначала выполняется пересечения самых маленьких множеств фаловых индексов @param setFileInd
+     * соответствующих самым редким словам, т.к. для таких множеств самая большая вероятность непересекаемости,
+     * что позволит быстрее выявить отсутствие файлов содержащих все слова поискового запроса.
+     *
+     * В цикле while выполняется пересечение всех множеств @param setFileInd соответствующих
+     * словам поискового запроса начиная с самих маленьких т.к. мы сделали перед этим "wordList.sort()"
+     * и возвращается результат этого пресечения @param result - множество setFileInd индексов файлов содержащих
+     * все слова из поискового запроса @param request - оно может быть пустым если пересечений не найдено, значит
+     * документов соджержащих все слова из запроса - нет!
+     **/
 
     if(request.empty())
         return {};
@@ -30,21 +57,21 @@ setFileInd SearchServer::unionSetFiles(const set<basicString> &request) const {
     setFileInd result, first;
     list<Word> wordList;
 
-
     for(const auto& word:request)
-        if(index.freqDictionary.find(word) != index.freqDictionary.end())
-            wordList.emplace_back(word, index.freqDictionary.at(word).size());
+        if(index->freqDictionary.find(word) != index->freqDictionary.end())
+            wordList.emplace_back(word, index->freqDictionary.at(word).size());
         else
             return {};
 
     auto getSetFromMap = [this](const basicString& word) {
         setFileInd s;
-        for(const auto& z:index.freqDictionary.at(word))
+        for(const auto& z:index->freqDictionary.at(word))
             s.insert(z.first);
         return s;
     };
 
     wordList.sort();
+
     result = getSetFromMap(wordList.front().word);
 
     while(true)
@@ -57,35 +84,51 @@ setFileInd SearchServer::unionSetFiles(const set<basicString> &request) const {
         else
             return result;
 
-        setFileInd unionSet;
+        setFileInd intersection;
 
         set_intersection(result.begin(),result.end(),
                          first.begin(),first.end(),
-                         std::inserter(unionSet, unionSet.end()));
+                         std::inserter(intersection, intersection.end()));
 
-        if(unionSet.empty())
+        if(intersection.empty())
             return {};
         else
-            result = unionSet;
+            result = intersection;
     }
 }
 
-list<tuple<string, float>> SearchServer::getResReq(basicString& text) const {
+listAnswer SearchServer::getAnswer(basicString& _request) const {
 
-    while(index.work)
-    {
-        cin.clear();
+    /** Сначала с помощью атомарной булевой переменной @param work проверяем не осущетвляется ли в данный
+     * момент времени обновление базы индексов (переиндексация файлов заданных в настройках сервера).
+     * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и раз в 2 секунды
+     * проверяем закончилась ли работа по переиндексации и далее выполняем запрос.
+     * Для выполнения запроса @param _request сначала получаем с помощью функции @param getUniqWords
+     * std::set @param setWords состоящий из уникальных слов запроса (разделитель пробел)
+     * содержащих только буквы и цифры.*
+     * Далее с помощью функции @param intersectionSetFiles находятся все файлы удовлетворяющие поисковому запросу,
+     * для каждого из них расчитывается относительная релевантность в процессе составления списка @param Results
+     * обьектов @param RelativeIndex - перед составлением списка статическая переменная @param max -
+     * максимальная абсолютная релевантность - обнуляется.
+     * Далее список @param Results сортируется по убыванию относительной релевантности и из него формируется
+     * окончательный ответ @param out  в виде списка пар идентификаторов документа (путь или индекс в зависимости
+     * от настроек сервера) и относительной релевантности - @param listAnswer - ограниченного максимальным размером
+     * ответа  @param maxResponse.
+     *
+     * */
+    if(index->work)
         std::cout << "Update base is running, pls wait!!!" << endl;
-        this_thread::sleep_for(std::chrono::seconds(3));
-    }
+    while(index->work)
+        this_thread::sleep_for(std::chrono::seconds(2));
 
-    list<FileResult> Results;
+    setWords request = getUniqWords(_request);
+    list<RelativeIndex> Results;
     listAnswer out;
-    setWords request = getUniqWords(text);
-    FileResult::max = 0;
 
-    for(const auto& z: unionSetFiles(request))
-        Results.emplace_back(z,request,index);
+    RelativeIndex::max = 0;
+
+    for(const auto& fileInd: intersectionSetFiles(request))
+        Results.emplace_back(fileInd,request,index);
 
     Results.sort();
 
@@ -124,12 +167,24 @@ setWords SearchServer::getUniqWords(basicString& text)
     return out;
 }
 
-listAnswers SearchServer::getResReqs(const vector<string>& requests) const {
+listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
 
+    /**
+    Обновить или заполнить базу документов, по которой будем совершать поиск
+    @param out содержимое документов
+    **/
     listAnswers out;
 
-    for(auto request: requests)
-        out.push_back(make_tuple(getResReq(request), request));
+    int i = 1;
+    for(auto& request: requests)
+        if(settings.requestText)
+            out.push_back(make_tuple(getAnswer(request), request));
+        else
+        {
+            string nRequest = i < 10 ? "00" + to_string(i) : i < 100 ? "0" + to_string(i) : to_string(i);
+            out.push_back(make_tuple(getAnswer(request), "request" + nRequest));
+            i++;
+        }
 
     addToLog(to_string(requests.size()) + " requests processed!");
 
@@ -139,7 +194,7 @@ listAnswers SearchServer::getResReqs(const vector<string>& requests) const {
 void SearchServer::updateDocumentBase() {
 
     time = (perf_timer<chrono::seconds>::duration([this] (){
-           this->index.updateDocumentBase(settings.threadCount); })
+           this->index->updateDocumentBase(settings.threadCount); })
            ).count();
 
 }
@@ -152,7 +207,9 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     addToLog("Server " + settings.name + " version " + settings.version + " is running!");
 
     if(settings.dir.empty())
-        index.setDocPaths(settings.files);
+        index = new InvertedIndex(settings.files);
+    else
+        index = new InvertedIndex(getAllFilesFromDir(settings.dir));
 
     auto periodUpdate = [this]()
     {
@@ -160,15 +217,16 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
         {
             if(!work)
             {
-                if(!settings.dir.empty())
-                    index.setDocPaths(getAllFilesFromDir(settings.dir));
 
                 addToLog("Index database update started!");
 
                 this->updateDocumentBase();
                 time = getTimeOfUpdate();
 
-                addToLog("Index database update completed! "+ to_string(index.docPaths.size()) + " files, " + to_string(index.freqDictionary.size()) + " uniq words in dictionary. " + "Time of update " + to_string(time) + " seconds.");
+                addToLog("Index database update completed! "+ to_string(index->docPaths.size()) + " files, "
+                    + to_string(index->freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
+                    + to_string(time) + " seconds.");
+
                 checkHash(true);
             }
             else
@@ -184,12 +242,12 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     {
         while(true)
         {
-            if(!index.work && !index.freqDictionary.empty() && checkHash())
+            if(!index->work && !index->freqDictionary.empty() && checkHash())
             {
                 work = true;
                 try
                 {
-                    ConverterJSON::putAnswers(this->getResReqs(ConverterJSON::getRequests()));
+                    ConverterJSON::putAnswers(this->getAllAnswers(ConverterJSON::getRequests()));
                 }
                 catch(...){}
                 work = false;
@@ -227,7 +285,10 @@ bool SearchServer::checkHash(bool resetHash) const {
     size_t newHash;
 
     if(resetHash)
+    {
         hash = 0;
+        return{};
+    }
 
     string textRequest;
     std::ifstream jsonFileRequests("Requests.json");
@@ -246,10 +307,11 @@ bool SearchServer::checkHash(bool resetHash) const {
 
     return check;
 }
+
 void SearchServer::addToLog(const string &s) const {
 
     char dataTime[20];
-    time_t now = std::time(0);
+    time_t now = std::time(nullptr);
     strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
 
     std::lock_guard<std::mutex> myLock(logMutex);
@@ -258,15 +320,29 @@ void SearchServer::addToLog(const string &s) const {
     logFile.close();
 }
 
+SearchServer::~SearchServer() {
 
+    delete index;
+    delete  threadUpdate;
+    delete  threadJsonSearch;
 
+}
 
+void SearchServer::showSettings() const {
+    settings.show();
+}
 
-SearchServer::FileResult::FileResult(size_t _fileInd, const setWords &request, const InvertedIndex& index) : fileInd(_fileInd)
+size_t SearchServer::getTimeOfUpdate() const {
+    return time;
+}
+
+SearchServer::RelativeIndex::RelativeIndex(size_t _fileInd, const setWords &request, const InvertedIndex* index) : fileInd(_fileInd)
 {
-    filePath = index.docPaths.at(fileInd);
+    filePath = index->docPaths.at(fileInd);
+
     for(const auto& word:request)
-        sum += index.freqDictionary.at(word).at(fileInd);
+        sum += index->freqDictionary.at(word).at(fileInd);
+
     if(sum > max)
         max = sum;
 }

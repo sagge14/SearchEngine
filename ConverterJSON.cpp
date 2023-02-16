@@ -16,6 +16,7 @@ void ConverterJSON::setSettings(const Settings &val) {
     jsonSettings["ind_time"] = val.indTime;
     jsonSettings["search_time"] = val.searchTime;
     jsonSettings["Files"] = val.files;
+    jsonSettings["text_request"] = val.requestText;
 
     std::ofstream jsonFileSettings("Films.json");
     jsonFileSettings << jsonSettings;
@@ -50,6 +51,7 @@ Settings ConverterJSON::getSettings(const std::string& jsonPath) {
     jsonSettings.at("dir").get_to(s.dir);
     jsonSettings.at("ind_time").get_to(s.indTime);
     jsonSettings.at("search_time").get_to(s.searchTime);
+    jsonSettings.at("text_request").get_to(s.requestText);
 
     return s;
 }

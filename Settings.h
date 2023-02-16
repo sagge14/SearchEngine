@@ -5,6 +5,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <thread>
 
 struct Settings
 {
@@ -18,16 +19,14 @@ struct Settings
     bool requestText{};
     std::vector<std::string> files;
 
+    void show() const;
+
+    Settings& operator=(Settings&& s) noexcept ;
+    Settings& operator=(const Settings& s) = default;
 
     Settings() = default;
-
     Settings(const Settings& s) = default;
-    Settings& operator=(const Settings& s) noexcept = default;
 
-    Settings(Settings&& s)  noexcept ;
-
-    Settings& operator=(Settings&& s) noexcept;
-
-
+    Settings(Settings&& s) noexcept ;
 };
 
