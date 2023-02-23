@@ -1,10 +1,9 @@
 #include <iostream>
 #include "SearchServer.h"
-#include "InvertedIndex.h"
 #include "ConverterJSON.h"
 
 int main() {
-
+    //TestInvertedIndexFunctionality();
     try
     {
         SearchServer myServer(ConverterJSON::getSettings());
@@ -70,3 +69,4 @@ int main() {
 
     return 0;
 }
+
