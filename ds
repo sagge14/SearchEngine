@@ -1,0 +1,376 @@
+[33mcommit 8fa8e8ba14337bc7153d017300118c357c41b4c1[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: sagge14 <108992042+sagge14@users.noreply.github.com>
+Date:   Thu Feb 23 23:13:52 2023 +0500
+
+    Signed-off-by: sagge14 <108992042+sagge14@users.noreply.github.com>
+
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex 0b76620..0fe045f 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -34,3 +34,4 @@[m
+ /.idea[m
+ /cmake-build-debug[m
+ /nlohmann_json[m
+[32m+[m[32m/lib[m
+[1mdiff --git a/lib/googletest/.github/ISSUE_TEMPLATE/00-bug_report.yml b/lib/googletest/.github/ISSUE_TEMPLATE/00-bug_report.yml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..586779a[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/.github/ISSUE_TEMPLATE/00-bug_report.yml[m
+[36m@@ -0,0 +1,53 @@[m
+[32m+[m[32mname: Bug Report[m
+[32m+[m[32mdescription: Let us know that something does not work as expected.[m
+[32m+[m[32mtitle: "[Bug]: Please title this bug report"[m
+[32m+[m[32mbody:[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: what-happened[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Describe the issue[m
+[32m+[m[32m      description: What happened, and what did you expect to happen?[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: steps[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Steps to reproduce the problem[m
+[32m+[m[32m      description: It is important that we are able to reproduce the problem that you are experiencing. Please provide all code and relevant steps to reproduce the problem, including your `BUILD`/`CMakeLists.txt` file and build commands. Links to a GitHub branch or [godbolt.org](https://godbolt.org/) that demonstrate the problem are also helpful.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: version[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: What version of GoogleTest are you using?[m
+[32m+[m[32m      description: Please include the output of `git rev-parse HEAD` or the GoogleTest release version number that you are using.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: os[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: What operating system and version are you using?[m
+[32m+[m[32m      description: If you are using a Linux distribution please include the name and version of the distribution as well.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: compiler[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: What compiler and version are you using?[m
+[32m+[m[32m      description: Please include the output of `gcc -v` or `clang -v`, or the equivalent for your compiler.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: buildsystem[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: What build system are you using?[m
+[32m+[m[32m      description: Please include the output of `bazel --version` or `cmake --version`, or the equivalent for your build system.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: additional[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Additional context[m
+[32m+[m[32m      description: Add any other context about the problem here.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: false[m
+[1mdiff --git a/lib/googletest/.github/ISSUE_TEMPLATE/10-feature_request.yml b/lib/googletest/.github/ISSUE_TEMPLATE/10-feature_request.yml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..91ad041[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/.github/ISSUE_TEMPLATE/10-feature_request.yml[m
+[36m@@ -0,0 +1,33 @@[m
+[32m+[m[32mname: Feature request[m
+[32m+[m[32mdescription: Propose a new feature.[m
+[32m+[m[32mtitle: "[FR]: Please title this feature request"[m
+[32m+[m[32mlabels: "enhancement"[m
+[32m+[m[32mbody:[m
+[32m+[m[32m  - type: textarea[m
+[32m+[m[32m    id: version[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Does the feature exist in the most recent commit?[m
+[32m+[m[32m      description: We recommend using the latest commit from GitHub in your projects.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m - type: textarea[m
+[32m+[m[32m    id: why[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Why do we need this feature?[m
+[32m+[m[32m      description: Ideally, explain why a combination of existing features cannot be used instead.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m - type: textarea[m
+[32m+[m[32m    id: proposal[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Describe the proposal.[m
+[32m+[m[32m      description: Include a detailed description of the feature, with usage examples.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[32m+[m[32m - type: textarea[m
+[32m+[m[32m    id: platform[m
+[32m+[m[32m    attributes:[m
+[32m+[m[32m      label: Is the feature specific to an operating system, compiler, or build system version?[m
+[32m+[m[32m      description: If it is, please specify which versions.[m
+[32m+[m[32m    validations:[m
+[32m+[m[32m      required: true[m
+[1mdiff --git a/lib/googletest/.github/ISSUE_TEMPLATE/config.yml b/lib/googletest/.github/ISSUE_TEMPLATE/config.yml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..65170d1[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/.github/ISSUE_TEMPLATE/config.yml[m
+[36m@@ -0,0 +1,5 @@[m
+[32m+[m[32mblank_issues_enabled: false[m
+[32m+[m[32mcontact_links:[m
+[32m+[m[32m    - name: Get Help[m
+[32m+[m[32m      url: https://github.com/google/googletest/discussions[m
+[32m+[m[32m      about: Please ask and answer questions here.[m
+[1mdiff --git a/lib/googletest/.github/workflows/gtest-ci.yml b/lib/googletest/.github/workflows/gtest-ci.yml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..03a8cc5[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/.github/workflows/gtest-ci.yml[m
+[36m@@ -0,0 +1,43 @@[m
+[32m+[m[32mname: ci[m
+[32m+[m
+[32m+[m[32mon:[m
+[32m+[m[32m  push:[m
+[32m+[m[32m  pull_request:[m
+[32m+[m
+[32m+[m[32menv:[m
+[32m+[m[32m  BAZEL_CXXOPTS: -std=c++14[m
+[32m+[m
+[32m+[m[32mjobs:[m
+[32m+[m[32m  Linux:[m
+[32m+[m[32m    runs-on: ubuntu-latest[m
+[32m+[m[32m    steps:[m
+[32m+[m
+[32m+[m[32m    - uses: actions/checkout@v3[m
+[32m+[m[32m      with:[m
+[32m+[m[32m        fetch-depth: 0[m
+[32m+[m
+[32m+[m[32m    - name: Tests[m
+[32m+[m[32m      run: bazel test --cxxopt=-std=c++14 --features=external_include_paths --test_output=errors ...[m
+[32m+[m
+[32m+[m[32m  macOS:[m
+[32m+[m[32m    runs-on: macos-latest[m
+[32m+[m[32m    steps:[m
+[32m+[m
+[32m+[m[32m    - uses: actions/checkout@v3[m
+[32m+[m[32m      with:[m
+[32m+[m[32m        fetch-depth: 0[m
+[32m+[m
+[32m+[m[32m    - name: Tests[m
+[32m+[m[32m      run:  bazel test --cxxopt=-std=c++14 --features=external_include_paths --test_output=errors ...[m
+[32m+[m
+[32m+[m
+[32m+[m[32m  Windows:[m
+[32m+[m[32m    runs-on: windows-latest[m
+[32m+[m[32m    steps:[m
+[32m+[m
+[32m+[m[32m    - uses: actions/checkout@v3[m
+[32m+[m[32m      with:[m
+[32m+[m[32m        fetch-depth: 0[m
+[32m+[m
+[32m+[m[32m    - name: Tests[m
+[32m+[m[32m      run: bazel test --cxxopt=/std:c++14 --features=external_include_paths --test_output=errors ...[m
+[1mdiff --git a/lib/googletest/.gitignore b/lib/googletest/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..f08cb72[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/.gitignore[m
+[36m@@ -0,0 +1,84 @@[m
+[32m+[m[32m# Ignore CI build directory[m
+[32m+[m[32mbuild/[m
+[32m+[m[32mxcuserdata[m
+[32m+[m[32mcmake-build-debug/[m
+[32m+[m[32m.idea/[m
+[32m+[m[32mbazel-bin[m
+[32m+[m[32mbazel-genfiles[m
+[32m+[m[32mbazel-googletest[m
+[32m+[m[32mbazel-out[m
+[32m+[m[32mbazel-testlogs[m
+[32m+[m[32m# python[m
+[32m+[m[32m*.pyc[m
+[32m+[m
+[32m+[m[32m# Visual Studio files[m
+[32m+[m[32m.vs[m
+[32m+[m[32m*.sdf[m
+[32m+[m[32m*.opensdf[m
+[32m+[m[32m*.VC.opendb[m
+[32m+[m[32m*.suo[m
+[32m+[m[32m*.user[m
+[32m+[m[32m_ReSharper.Caches/[m
+[32m+[m[32mWin32-Debug/[m
+[32m+[m[32mWin32-Release/[m
+[32m+[m[32mx64-Debug/[m
+[32m+[m[32mx64-Release/[m
+[32m+[m
+[32m+[m[32m# Ignore autoconf / automake files[m
+[32m+[m[32mMakefile.in[m
+[32m+[m[32maclocal.m4[m
+[32m+[m[32mconfigure[m
+[32m+[m[32mbuild-aux/[m
+[32m+[m[32mautom4te.cache/[m
+[32m+[m[32mgoogletest/m4/libtool.m4[m
+[32m+[m[32mgoogletest/m4/ltoptions.m4[m
+[32m+[m[32mgoogletest/m4/ltsugar.m4[m
+[32m+[m[32mgoogletest/m4/ltversion.m4[m
+[32m+[m[32mgoogletest/m4/lt~obsolete.m4[m
+[32m+[m[32mgooglemock/m4[m
+[32m+[m
+[32m+[m[32m# Ignore generated directories.[m
+[32m+[m[32mgooglemock/fused-src/[m
+[32m+[m[32mgoogletest/fused-src/[m
+[32m+[m
+[32m+[m[32m# macOS files[m
+[32m+[m[32m.DS_Store[m
+[32m+[m[32mgoogletest/.DS_Store[m
+[32m+[m[32mgoogletest/xcode/.DS_Store[m
+[32m+[m
+[32m+[m[32m# Ignore cmake generated directories and files.[m
+[32m+[m[32mCMakeFiles[m
+[32m+[m[32mCTestTestfile.cmake[m
+[32m+[m[32mMakefile[m
+[32m+[m[32mcmake_install.cmake[m
+[32m+[m[32mgooglemock/CMakeFiles[m
+[32m+[m[32mgooglemock/CTestTestfile.cmake[m
+[32m+[m[32mgooglemock/Makefile[m
+[32m+[m[32mgooglemock/cmake_install.cmake[m
+[32m+[m[32mgooglemock/gtest[m
+[32m+[m[32m/bin[m
+[32m+[m[32m/googlemock/gmock.dir[m
+[32m+[m[32m/googlemock/gmock_main.dir[m
+[32m+[m[32m/googlemock/RUN_TESTS.vcxproj.filters[m
+[32m+[m[32m/googlemock/RUN_TESTS.vcxproj[m
+[32m+[m[32m/googlemock/INSTALL.vcxproj.filters[m
+[32m+[m[32m/googlemock/INSTALL.vcxproj[m
+[32m+[m[32m/googlemock/gmock_main.vcxproj.filters[m
+[32m+[m[32m/googlemock/gmock_main.vcxproj[m
+[32m+[m[32m/googlemock/gmock.vcxproj.filters[m
+[32m+[m[32m/googlemock/gmock.vcxproj[m
+[32m+[m[32m/googlemock/gmock.sln[m
+[32m+[m[32m/googlemock/ALL_BUILD.vcxproj.filters[m
+[32m+[m[32m/googlemock/ALL_BUILD.vcxproj[m
+[32m+[m[32m/lib[m
+[32m+[m[32m/Win32[m
+[32m+[m[32m/ZERO_CHECK.vcxproj.filters[m
+[32m+[m[32m/ZERO_CHECK.vcxproj[m
+[32m+[m[32m/RUN_TESTS.vcxproj.filters[m
+[32m+[m[32m/RUN_TESTS.vcxproj[m
+[32m+[m[32m/INSTALL.vcxproj.filters[m
+[32m+[m[32m/INSTALL.vcxproj[m
+[32m+[m[32m/googletest-distribution.sln[m
+[32m+[m[32m/CMakeCache.txt[m
+[32m+[m[32m/ALL_BUILD.vcxproj.filters[m
+[32m+[m[32m/ALL_BUILD.vcxproj[m
+[1mdiff --git a/lib/googletest/BUILD.bazel b/lib/googletest/BUILD.bazel[m
+[1mnew file mode 100644[m
+[1mindex 0000000..ac62251[m
+[1m--- /dev/null[m
+[1m+++ b/lib/googletest/BUILD.bazel[m
+[36m@@ -0,0 +1,218 @@[m
+[32m+[m[32m# Copyright 2017 Google Inc.[m
+[32m+[m[32m# All Rights Reserved.[m
+[32m+[m[32m#[m
+[32m+[m[32m#[m
+[32m+[m[32m# Redistribution and use in source and binary forms, with or without[m
+[32m+[m[32m# modification, are permitted provided that the following conditions are[m
+[32m+[m[32m# met:[m
+[32m+[m[32m#[m
+[32m+[m[32m#     * Redistributions of source code must retain the above copyright[m
+[32m+[m[32m# notice, this list of conditions and the following disclaimer.[m
+[32m+[m[32m#     * Redistributions in binary form must reproduce the above[m
+[32m+[m[32m# copyright notice, this list of conditions and the following disclaimer[m
+[32m+[m[32m# in the documentation and/or other materials provided with the[m
+[32m+[m[32m# distribution.[m
+[32m+[m[32m#     * Neither the name of Google Inc. nor the names of its[m
+[32m+[m[32m# contributors may be used to endorse or promote products derived from[m
+[32m+[m[32m# this software without specific prior written permission.[m
+[32m+[m[32m#[m
+[32m+[m[32m# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS[m
+[32m+[m[32m# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT[m
+[32m+[m[32m# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR[m
+[32m+[m[32m# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT[m
+[32m+[m[32m# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,[m
+[32m+[m[32m# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT[m
+[32m+[m[32m# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,[m
+[32m+[m[32m# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY[m
+[32m+[m[32m# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT[m
+[32m+[m[32m# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE[m
+[32m+[m[32m# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.[m
+[32m+[m[32m#[m
+[32m+[m[32m#   Bazel Build for Google C++ Testing Framework(Google Test)[m
+[32m+[m
+[32m+[m[32mpackage(default_visibility = ["//visibility:public"])[m
+[32m+[m
+[32m+[m[32mlicenses(["notice"])[m
+[32m+[m
+[32m+[m[32mexports_files(["LICENSE"])[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "qnx",[m
+[32m+[m[32m    constraint_values = ["@platforms//os:qnx"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "windows",[m
+[32m+[m[32m    constraint_values = ["@platforms//os:windows"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "freebsd",[m
+[32m+[m[32m    constraint_values = ["@platforms//os:freebsd"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "openbsd",[m
+[32m+[m[32m    constraint_values = ["@platforms//os:openbsd"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "msvc_compiler",[m
+[32m+[m[32m    flag_values = {[m
+[32m+[m[32m        "@bazel_tools//tools/cpp:compiler": "msvc-cl",[m
+[32m+[m[32m    },[m
+[32m+[m[32m    visibility = [":__subpackages__"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mconfig_setting([m
+[32m+[m[32m    name = "has_absl",[m
+[32m+[m[32m    values = {"define": "absl=1"},[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32m# Library that defines the FRIEND_TEST macro.[m
+[32m+[m[32mcc_library([m
+[32m+[m[32m    name = "gtest_prod",[m
+[32m+[m[32m    hdrs = ["googletest/include/gtest/gtest_prod.h"],[m
+[32m+[m[32m    includes = ["googletest/include"],[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32m# Google Test including Google Mock[m
+[32m+[m[32mcc_library([m
+[32m+[m[32m    name = "gtest",[m
+[32m+[m[32m    srcs = glob([m
+[32m+[m[32m        include = [[m
+[32m+[m[32m            "googletest/src/*.cc",[m
+[32m+[m[32m            "googletest/src/*.h",[m
+[32m+[m[32m            "googletest/include/gtest/**/*.h",[m
+[32m+[m[32m            "googlemock/src/*.cc",[m
+[32m+[m[32m            "googlemock/include/gmock/**/*.h",[m
+[32m+[m[32m        ],[m
+[32m+[m[32m        exclude = [[m
+[32m+[m[32m            "googletest/src/gtest-all.cc",[m
+[32m+[m[32m            "googletest/src/gtest_main.cc",[m
+[32m+[m[32m            "googlemock/src/gmock-all.cc",[m
+[32m+[m[32m            "googlemock/src/gmock_main.cc",[m
+[32m+[m[32m        ],[m
+[32m+[m[32m    ),[m
+[32m+[m[32m    hdrs = glob([[m
+[32m+[m[32m        "googletest/include/gtest/*.h",[m
+[32m+[m[32m        "googlemock/include/gmock/*.h",[m
+[32m+[m[32m    ]),[m
+[32m+[m[32m    copts = select({[m
+[32m+[m[32m        ":qnx": [],[m
+[32m+[m[32m        ":windows": [],[m
+[32m+[m[32m        "//conditions:default": ["-pthread"],[m
+[32m+[m[32m    }),[m
+[32m+[m[32m    defines = select({[m
+[32m+[m[32m        "
