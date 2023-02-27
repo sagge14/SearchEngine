@@ -7,6 +7,8 @@
 #include <vector>
 #include <thread>
 
+#define TEST_MODE true
+
 struct Settings
 {
     std::string name;
@@ -24,7 +26,14 @@ struct Settings
     Settings& operator=(Settings&& s) noexcept ;
     Settings& operator=(const Settings& s) = default;
 
-    Settings() = default;
+    Settings()
+    {
+        name = "TestServer";
+        version = "1.1";
+        dir = "";
+        threadCount = 1;
+        maxResponse = 5;
+    }
     Settings(const Settings& s) = default;
 
     Settings(Settings&& s) noexcept ;

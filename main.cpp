@@ -3,7 +3,6 @@
 #include "ConverterJSON.h"
 
 int main() {
-    //TestInvertedIndexFunctionality();
     try
     {
         SearchServer myServer(ConverterJSON::getSettings());

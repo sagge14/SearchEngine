@@ -17,7 +17,6 @@
 #include <iterator>
 #include "ConverterJSON.h"
 #include "InvertedIndex.h"
-#include "Settings.h"
 
 using namespace std;
 
@@ -141,7 +140,16 @@ public:
     void showSettings() const;
 
     explicit SearchServer(Settings&&  settings);
+
     explicit SearchServer() = default;
+
+    #if TEST_MODE == true
+    explicit SearchServer(const vector<basicString>& _docPaths)
+    {
+        index = new InvertedIndex(_docPaths);
+        index->updateDocumentBase();
+    }
+    #endif
 
     ~SearchServer();
 };

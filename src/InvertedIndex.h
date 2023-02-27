@@ -13,9 +13,10 @@
 #include <mutex>
 #include <iostream>
 #include <atomic>
+#include "Settings.h"
 using namespace std;
 
-#define myTEST 1
+
 
 typedef string basicString;
 typedef map<size_t,size_t> mapEntry;
@@ -24,7 +25,7 @@ template <typename Time = chrono::seconds, typename Clock = chrono::high_resolut
 struct perf_timer
 {
     /** Стркуктура повзволяющая получить время выполнения любой функции.
-     * Взято из книги "Решение задачна современном C++" Мариуса Бансила.
+     * Взято из книги "Решение задач на современном C++" Мариуса Бансила.
      * */
     template <typename F, typename... Args>
     static Time duration(F&& f, Args... args)
@@ -51,24 +52,15 @@ class InvertedIndex {
     void allFilesIndexing(size_t threadCount = 0);
     void addToLog(const string& s) const;
 
-
-
 public:
 
     [[maybe_unused]] void setDocPaths(vector<basicString> _docPaths) {docPaths = std::move(_docPaths);};
     void updateDocumentBase(size_t threadCount = 0);
+    mapEntry getWordCount(const string& s);
 
     InvertedIndex() = default;
-
     InvertedIndex(const vector<basicString>& _docPaths);
 
-    auto getWordCount(const string& s) {
-        auto f = freqDictionary.find(s);
-        if(f != freqDictionary.end())
-            return freqDictionary.at(s);
-        else
-            return mapEntry {};
-    };
     ~InvertedIndex() = default;
 
 };

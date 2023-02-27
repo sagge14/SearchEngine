@@ -72,6 +72,14 @@ setFileInd SearchServer::intersectionSetFiles(const setWords &request) const {
         return s;
     };
 
+    for(const auto& w: wordList)
+    {
+        auto sSet = getSetFromMap(w.word);
+        result.insert(sSet.begin(),sSet.end());
+    }
+
+    return result;
+
     wordList.sort();
 
     result = getSetFromMap(wordList.front().word);
@@ -125,26 +133,12 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
 
     setWords request = getUniqWords(_request);
     list<RelativeIndex> Results;
-    vector<RelativeIndex> Results2;
     listAnswer out;
 
     RelativeIndex::max = 0;
 
     for(const auto& fileInd: intersectionSetFiles(request))
-    {
         Results.emplace_back(fileInd,request,index);
-        Results2.emplace_back(fileInd,request,index);
-    }
-
-
-//    size_t time2 = (perf_timer<chrono::microseconds>::duration([&Results] (){
-//        Results.sort(); })
-//    ).count();
-//
-//    size_t time3 = (perf_timer<chrono::microseconds>::duration([&Results2] (){
-//        sort(Results2.begin(),Results2.end(), [](auto& r, auto& r2){return r.sum < r2.sum;}); })
-//    ).count();
-
 
     Results.sort();
 
@@ -311,8 +305,8 @@ bool SearchServer::checkHash(bool resetHash) const {
 
     if(jsonFileRequests.is_open())
     {
-            jsonFileRequests >> textRequest;
-            jsonFileRequests.close();
+        textRequest = basicString ((istreambuf_iterator<char>(jsonFileRequests)), (istreambuf_iterator<char>()));
+        jsonFileRequests.close();
     }
     else
         return false;
@@ -338,7 +332,7 @@ void SearchServer::addToLog(const string &s) const {
 
 SearchServer::~SearchServer() {
 
-    delete index;
+    delete  index;
     delete  threadUpdate;
     delete  threadJsonSearch;
 
@@ -357,7 +351,12 @@ SearchServer::RelativeIndex::RelativeIndex(size_t _fileInd, const setWords &requ
     filePath = index->docPaths.at(fileInd);
 
     for(const auto& word:request)
-        sum += index->freqDictionary.at(word).at(fileInd);
+    {
+        if(index->freqDictionary.find(word) != index->freqDictionary.end()
+            && index->freqDictionary.find(word)->second.find(fileInd) != index->freqDictionary.find(word)->second.end())
+         sum += index->freqDictionary.at(word).at(fileInd);
+    }
+
 
     if(sum > max)
         max = sum;

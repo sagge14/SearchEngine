@@ -30,9 +30,6 @@ Settings ConverterJSON::getSettings(const std::string& jsonPath) {
     nh::json jsonSettings;
     std::ifstream jsonFileSettings(jsonPath);
 
-    if(jsonFileSettings.is_open())
-        std::cout << "open!" << std::endl;
-
     try
     {
         jsonSettings = nh::json::parse(jsonFileSettings);

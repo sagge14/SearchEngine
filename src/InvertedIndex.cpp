@@ -6,7 +6,6 @@
 #include <iostream>
 #include <utility>
 
-
 void InvertedIndex::updateDocumentBase(size_t threadCount)
 {
     work = true;
@@ -42,7 +41,7 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
 void InvertedIndex::fileIndexing(size_t fileInd)
 {
 
-    #if myTEST == 0
+    #if TEST_MODE == false
     ifstream file(docPaths.at(fileInd));
 
     if(!file.is_open())
@@ -53,9 +52,9 @@ void InvertedIndex::fileIndexing(size_t fileInd)
 
     basicString text((istreambuf_iterator<char>(file)), (istreambuf_iterator<char>()));
     file.close();
-
     #endif
-    #if myTEST == 1
+
+    #if TEST_MODE == true
     basicString text(docPaths.at(fileInd));
     #endif
 
@@ -103,5 +102,14 @@ void InvertedIndex::addToLog(const string &s) const {
     logFile.open("log.ini", ios::app);
     logFile << "[" << dataTime << "] " << s << endl;
     logFile.close();
+
+}
+mapEntry InvertedIndex::getWordCount(const string &s) {
+
+    auto f = freqDictionary.find(s);
+    if(f != freqDictionary.end())
+        return freqDictionary.at(s);
+    else
+        return mapEntry {};
 
 }
