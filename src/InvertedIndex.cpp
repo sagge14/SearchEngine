@@ -16,6 +16,9 @@ void InvertedIndex::updateDocumentBase(size_t threadCount)
 
 void InvertedIndex::allFilesIndexing(size_t _threadCount) {
 
+/** Файлы индексации делятся поровну между потоками, если @param  _threadCount = 0,
+ * то количество потоков будет равно количеству ядер процессора*/
+
     size_t size = docPaths.size();
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
     threadCount = size < threadCount ? size : threadCount;
@@ -40,6 +43,11 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
 
 void InvertedIndex::fileIndexing(size_t fileInd)
 {
+    /** Если @param  TEST_MODE = true, то @param docPaths используется не как
+     * база путей индексируемых файлов, а как база самих файлов (строк)
+     * Из текста удаляются все символы кроме букв и цифр,
+     * все буквы приводятся к нижнему регистру*/
+
 
     #if TEST_MODE == false
     ifstream file(docPaths.at(fileInd));
@@ -55,13 +63,13 @@ void InvertedIndex::fileIndexing(size_t fileInd)
     #endif
 
     #if TEST_MODE == true
-    basicString text(docPaths.at(fileInd));
+    basicString text(docPaths[fileInd]);
     #endif
 
     map<basicString, size_t> freqWordDoc;
 
     transform(text.begin(), text.end(), text.begin(), [](char c){
-        return isalnum(c) ? tolower(c) :  (' '); });
+        return isalnum(c) ? tolower(c) : (' '); });
 
     istringstream iss(text);
 
@@ -107,6 +115,9 @@ void InvertedIndex::addToLog(const string &s) const {
 }
 
 mapEntry InvertedIndex::getWordCount(const string &s) {
+    /** Функция возвращающая @param mapEntry - обьект типа map<size_t,size_t>,
+      * где first - индекс файла, а second - количество сколько раз в это файле встрчается
+      * поисковое слово (ключ карты @param freqDictionary) */
 
     auto f = freqDictionary.find(s);
     if(f != freqDictionary.end())

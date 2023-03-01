@@ -21,7 +21,6 @@
 using namespace std;
 
 typedef string basicString;
-typedef set<basicString> setWords;
 typedef set<size_t> setFileInd;
 typedef list<tuple<string, float>> listAnswer;
 typedef list<tuple<listAnswer, string>> listAnswers;
@@ -29,8 +28,6 @@ typedef list<tuple<listAnswer, string>> listAnswers;
 class SearchServer {
 
 private:
-
-
 
     /** @param work для проверки выполнения в текущий момент времени запроса.*
       * @param hashRequest хэш последнего выполненного запроса,
@@ -83,7 +80,7 @@ private:
         bool operator == (const RelativeIndex& other) const {return (sum == other.sum);}
         bool operator < (const RelativeIndex& r) const {return sum > r.sum;}
 
-        RelativeIndex(size_t fileInd, const setWords& request, const InvertedIndex* index);
+        RelativeIndex(size_t fileInd, const set<basicString>& request, const InvertedIndex* index, bool exactSearch);
         ~RelativeIndex() = default;
     };
 
@@ -107,8 +104,8 @@ private:
 
     void trustSettings() const;
     bool checkHash(bool resetHash = false) const;
-    [[nodiscard]] setFileInd intersectionSetFiles(const setWords& request) const;
-    static setWords getUniqWords(basicString& text);
+    [[nodiscard]] setFileInd intersectionSetFiles(const set<basicString>& request) const;
+    static set<basicString> getUniqWords(basicString& text);
     static vector<basicString> getAllFilesFromDir(const basic_string<char>& dir);
     void addToLog(const string& s) const;
 
