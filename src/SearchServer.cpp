@@ -5,7 +5,7 @@
 
 vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
 
-    /** Функция получения всех файлов из дирректории @param dir исключая имена папок */
+    /** Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
 
     namespace fs = std::filesystem;
     auto recursiveGetFileNamesByExtension = [](const string &path)
