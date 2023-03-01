@@ -28,7 +28,7 @@ void TestInvertedIndexFunctionality(
     }
     ASSERT_EQ(result, expected);
 }
-TEST(TestInvertedIndexFunctionality, test3) {
+TEST(TestInvertedIndexFunctionality, TestBasic1) {
     const vector<basicString> docs = {
             "london is !the capital of  great britain",
             "big ben is the nickname for !the! Great bell the? of the striking clock"
@@ -76,7 +76,7 @@ TEST(TestCaseInvertedIndex, TestInvertedIndexMissingWord) {
     };
     TestInvertedIndexFunctionality(docs, requests, expected);
 }
-TEST(TestCaseSearchServer, TestTop5) {
+TEST(TestCaseSearchServer, TestTop5_1) {
     const vector<basicString> docs = {
             "london is the capital of great britain",
             "paris is the capital of france",
@@ -112,6 +112,48 @@ TEST(TestCaseSearchServer, TestTop5) {
               }
     };
     SearchServer srv(docs);
+    listAnswer result = srv.getAnswer(request);
+    ASSERT_EQ(result, expected);
+}
+TEST(TestCaseSearchServer, TestTop5_2) {
+    const vector<basicString> docs = {
+            "Moscow is my favorite city, also Moscow is the capital of Russia",
+            "berlin is the capital of germany",
+            "I was born in Moscow",
+            "I from Russia",
+            "A capital is main city in any country",
+            "moscow is the capital of russia!",
+    };
+    string request = {"moscow is the capital of russia"};
+    const listAnswer expected = {
+
+                    {"0", 1},
+                    {"5", 0.75},
+                    {"1", 0.5},
+                    {"4", 0.25},
+                    {"2", 0.125}
+    };
+    SearchServer srv(docs);
+    listAnswer result = srv.getAnswer(request);
+    ASSERT_EQ(result, expected);
+}
+TEST(TestCaseSearchServer, TestTop5_Extact_Search) {
+    const vector<basicString> docs = {
+            "Moscow is my favorite city, also Moscow is the capital of Russia",
+            "berlin is the capital of germany",
+            "I was born in Moscow",
+            "I from Russia",
+            "A capital is main city in any country",
+            "moscow is the capital of russia",
+    };
+    string request = {"moscow is the capital of Russia"};
+    const listAnswer expected = {
+            {
+                    {"0", 1},
+                    {"5", 0.75}
+            }
+    };
+    SearchServer srv(docs, true);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
