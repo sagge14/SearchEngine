@@ -7,13 +7,26 @@
 #include <vector>
 #include <thread>
 
-#define TEST_MODE true
+#define TEST_MODE false
 
 struct Settings
 {
+    /** @param name имя сервера.*
+      * @param version версия сервера,
+      * @param dir для поиска повсем файлам в дирректории включая подпапки
+      * если параметр пустой, то поиск осуществляется только по файлам указанным в @param files.*
+      * @param exactSearch для установки серевера в режим работы "точного поиска".*
+      * @param threadCount устанавливает количество потоков осуществляющих индексирования файлов,
+      * если установить значение 0 - то количество потоков будет выбрано автоматически, по количеству ядер процессора.*
+      * @param indTime устанавливает период переиндексации файлов в секундах.*
+      * @param searchTime устанавливает период выполнения запросов из файла ("Request.json").
+      * @param maxResponse устанавливает максимальное количество ответов на запрос.*
+      * @param requestText для отображения в файле ответов вместо идентификаторов запрослв текста запросов */
+
     std::string name;
     std::string version;
     std::string dir;
+    bool exactSearch;
     int threadCount{};
     size_t indTime{};
     size_t searchTime{};
@@ -26,16 +39,8 @@ struct Settings
     Settings& operator=(Settings&& s) noexcept ;
     Settings& operator=(const Settings& s) = default;
 
-    Settings()
-    {
-        name = "TestServer";
-        version = "1.1";
-        dir = "";
-        threadCount = 1;
-        maxResponse = 5;
-    }
     Settings(const Settings& s) = default;
-
-    Settings(Settings&& s) noexcept ;
+    Settings(Settings&& s) noexcept;
+    Settings();
 };
 

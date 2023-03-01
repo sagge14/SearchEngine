@@ -3,6 +3,7 @@
 //
 #pragma once
 #include <fstream>
+#include <utility>
 #include <vector>
 #include <list>
 #include <tuple>
@@ -22,8 +23,10 @@ public:
     struct myExp : public std::exception
     {
     public:
+        std::string file;
         myExp() = default;
-        static void show () { std::cout << "error pars settings" << std::endl;}
+        explicit myExp(std::string  _file): file(std::move(_file)){};
+        void show () const { std::cout << "Error pars settings, check file '" << file <<"'"  << std::endl;}
     };
 
     ConverterJSON() = default;

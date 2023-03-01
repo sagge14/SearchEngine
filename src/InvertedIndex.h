@@ -16,8 +16,6 @@
 #include "Settings.h"
 using namespace std;
 
-
-
 typedef string basicString;
 typedef map<size_t,size_t> mapEntry;
 
@@ -59,7 +57,7 @@ public:
     mapEntry getWordCount(const string& s);
 
     InvertedIndex() = default;
-    InvertedIndex(const vector<basicString>& _docPaths);
+    explicit InvertedIndex(const vector<basicString>& _docPaths);
 
     ~InvertedIndex() = default;
 

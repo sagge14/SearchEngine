@@ -92,6 +92,7 @@ void InvertedIndex::fileIndexing(size_t fileInd)
 InvertedIndex::InvertedIndex(const vector<basicString>& _docPaths) :InvertedIndex() {
     docPaths = _docPaths;
 }
+
 void InvertedIndex::addToLog(const string &s) const {
 
     char dataTime[20];
@@ -104,6 +105,7 @@ void InvertedIndex::addToLog(const string &s) const {
     logFile.close();
 
 }
+
 mapEntry InvertedIndex::getWordCount(const string &s) {
 
     auto f = freqDictionary.find(s);

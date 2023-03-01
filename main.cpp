@@ -53,7 +53,7 @@ int main() {
     }
     catch(ConverterJSON::myExp& e)
     {
-        ConverterJSON::myExp::show();
+        e.show();
         system("pause");
     }
     catch(SearchServer::myExp& e)

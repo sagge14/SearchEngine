@@ -15,6 +15,7 @@ Settings& Settings::operator=(Settings &&s) noexcept
     std::swap(searchTime,s.searchTime);
     std::swap(indTime,s.indTime);
     std::swap(requestText,s.requestText);
+    std::swap(exactSearch,s.exactSearch);
     s.name = "";
     s.version = "";
     s.files.clear();
@@ -38,6 +39,7 @@ Settings::Settings(Settings &&s) noexcept: Settings()
     std::swap(indTime,s.indTime);
     std::swap(requestText,s.requestText);
     std::swap(searchTime,s.searchTime);
+    std::swap(exactSearch,s.exactSearch);
 }
 
 void Settings::show() const
@@ -55,5 +57,17 @@ void Settings::show() const
         std::cout << std::thread::hardware_concurrency() << std::endl;
     std::cout << "Index database update period:\t" << indTime << " seconds" << std::endl;
     std::cout << "Index database update period:\t" << searchTime << " milliseconds" << std::endl;
-    std::cout << "Show request as text:\t\t" << std::boolalpha << requestText << std::endl << std::endl;
+    std::cout << "Show request as text:\t\t" << std::boolalpha << requestText << std::endl;
+    std::cout << "Use exact search:\t\t" << std::boolalpha << exactSearch << std::endl << std::endl;
+}
+
+Settings::Settings() {
+
+    name = "TestServer";
+    version = "1.1";
+    dir = "";
+    threadCount = 1;
+    maxResponse = 5;
+    exactSearch = false;
+
 }

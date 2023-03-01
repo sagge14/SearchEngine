@@ -72,16 +72,18 @@ setFileInd SearchServer::intersectionSetFiles(const setWords &request) const {
         return s;
     };
 
-    for(const auto& w: wordList)
+    if(!settings.exactSearch)
     {
-        auto sSet = getSetFromMap(w.word);
-        result.insert(sSet.begin(),sSet.end());
+        for(const auto& w: wordList)
+        {
+            auto sSet = getSetFromMap(w.word);
+            result.insert(sSet.begin(),sSet.end());
+        }
+
+        return result;
     }
 
-    return result;
-
     wordList.sort();
-
     result = getSetFromMap(wordList.front().word);
 
     while(true)
