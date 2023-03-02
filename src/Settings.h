@@ -7,8 +7,8 @@
 #include <vector>
 #include <thread>
 
-#define TEST_MODE true
-//#define TEST_MODE false
+//#define TEST_MODE true
+#define TEST_MODE false
 
 struct Settings
 {

@@ -5,6 +5,8 @@
 #include "ConverterJSON.h"
 
 void ConverterJSON::setSettings(const Settings &val) {
+    /**
+    Функция записи настроек сервера в json файл. */
 
     nh::json jsonSettings;
 
@@ -19,13 +21,15 @@ void ConverterJSON::setSettings(const Settings &val) {
     jsonSettings["config"]["exact_search"] = val.exactSearch;
     jsonSettings["Files"] = val.files;
 
-    std::ofstream jsonFileSettings("Films.json");
+    std::ofstream jsonFileSettings("Settings.json");
     jsonFileSettings << jsonSettings;
     jsonFileSettings.close();
 
 }
 
 Settings ConverterJSON::getSettings(const std::string& jsonPath) {
+    /**
+    Функция получения настроек сервера из json файла. */
 
     Settings s;
     nh::json jsonSettings;
@@ -61,6 +65,10 @@ Settings ConverterJSON::getSettings(const std::string& jsonPath) {
 }
 
 std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath) {
+    /**
+    функция получения запросов из json файла, адресованных поисковому серверу.
+    Если json файла - некорректен или отсутствует возвращается пустой вектор,
+    работа сервера не будет прекращена. */
 
     std::vector<std::string> requests;
     nh::json jsonRequests;
@@ -70,7 +78,7 @@ std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath)
     {
         jsonRequests = nh::json::parse(jsonFileRequests);
         jsonFileRequests.close();
-        jsonRequests.at("Requests").get_to(requests);
+        jsonRequests.at(jsonPath).get_to(requests);
     }
     catch (nh::json::parse_error& ex)
     {
@@ -85,21 +93,23 @@ std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath)
 }
 
 void ConverterJSON::putAnswers(const listAnswers& answers, const std::string& jsonPath) {
+    /**
+     функция записи ответов сервера на запросы в json файл. */
 
     nh::json jsonAnswers;
 
-    for(const auto& a: answers)
+    for(const auto& answer: answers)
     {
-        if(!std::get<0>(a).empty())
+        if(answer.first.empty())
         {
-            jsonAnswers["Answers"][std::get<1>(a)]["result"] = true;
-            jsonAnswers["Answers"][std::get<1>(a)]["relevance"] = std::get<0>(a);
+            jsonAnswers["Answers"][answer.second]["result"] = true;
+            jsonAnswers["Answers"][answer.second]["relevance"] = std::get<0>(answer);
         }
         else
-            jsonAnswers["Answers"][std::get<1>(a)]["result"] = false;
+            jsonAnswers["Answers"][answer.second]["result"] = false;
     }
 
-    std::ofstream jsonFileSettings("Answers.json");
+    std::ofstream jsonFileSettings(jsonPath);
     jsonFileSettings << jsonAnswers;
     jsonFileSettings.close();
 }

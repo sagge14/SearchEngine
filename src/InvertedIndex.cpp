@@ -5,6 +5,8 @@
 
 void InvertedIndex::updateDocumentBase(size_t threadCount)
 {
+    /** Очищаем старую базу индексов формируем новую.
+     во время выполнения переиндексирования устанавливаем  @param work = true. */
     work = true;
     freqDictionary.clear();
     allFilesIndexing(threadCount);
@@ -12,11 +14,9 @@ void InvertedIndex::updateDocumentBase(size_t threadCount)
 }
 
 void InvertedIndex::allFilesIndexing(size_t _threadCount) {
-
 /** Файлы индексации делятся поровну @param step между потоками, если @param  _threadCount = 0,
- * то количество потоков будет равно количеству ядер процессора, если заданное из настроек количество потоков
- * больше количества индексируемых файлов, то количество потоков будет равно количеству индексируемых файлов.
- * */
+    то количество потоков будет равно количеству ядер процессора, если заданное из настроек количество потоков
+    больше количества индексируемых файлов, то количество потоков будет равно количеству индексируемых файлов. */
 
     size_t size = docPaths.size();
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
@@ -45,7 +45,8 @@ void InvertedIndex::fileIndexing(size_t fileInd)
     /** Если @param  TEST_MODE = true, то @param docPaths используется не как
      * база путей индексируемых файлов, а как база самих файлов (строк)
      * Из текста удаляются все символы кроме букв и цифр,
-     * все буквы приводятся к нижнему регистру*/
+     * все буквы приводятся к нижнему регистру
+     * @param freqWordFile - карта частоты слов файла */
 
 
     #if TEST_MODE == false
@@ -65,7 +66,7 @@ void InvertedIndex::fileIndexing(size_t fileInd)
     basicString text(docPaths[fileInd]);
     #endif
 
-    map<basicString, size_t> freqWordDoc;
+    map<basicString, size_t> freqWordFile;
 
     transform(text.begin(), text.end(), text.begin(), [](char c){
         return isalnum(c) ? tolower(c) : (' '); });
@@ -79,24 +80,26 @@ void InvertedIndex::fileIndexing(size_t fileInd)
         iss >> word;
         if (iss)
         {
-            auto item = freqWordDoc.find(word); //   freqWordDoc - карта частоты слов документа
+            auto item = freqWordFile.find(word);
 
-            if(item != freqWordDoc.end())
+            if(item != freqWordFile.end())
                 item->second++;
             else
-                freqWordDoc[word] = 1;
+                freqWordFile[word] = 1;
         }
     }
 
-    if(freqWordDoc.empty())
+    if(freqWordFile.empty())
         return;
 
     std::lock_guard<std::mutex> myLock(mapMutex);
-    for(const auto& item:freqWordDoc)
-        freqDictionary[item.first].insert(make_pair(fileInd, freqWordDoc.at(item.first)));
+    for(const auto& item:freqWordFile)
+        freqDictionary[item.first].insert(make_pair(fileInd, freqWordFile.at(item.first)));
 }
 
 InvertedIndex::InvertedIndex(const vector<basicString>& _docPaths) :InvertedIndex() {
+    /**
+    Установка путей файлов подлежащих индексации*/
     docPaths = _docPaths;
 }
 

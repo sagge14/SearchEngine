@@ -18,6 +18,11 @@ typedef std::list<std::pair<listAnswer, std::string>> listAnswers;
 class ConverterJSON {
 
 public:
+    /** @param myExp исключения выбрасываемые при проблемах чтения информации из json файлов.
+        @param setSettings функция записи настроек сервера в json файл - ни где пока не используется, но может пригодиться..
+        @param getSettings функция получения настроек сервера из json файла.
+        @param getRequests функция получения запросов из json файла, адресованных поисковому серверу.
+        @param putAnswers функция записи ответов сервера на запросы в json файл. */
 
     struct myExp : public std::exception
     {
