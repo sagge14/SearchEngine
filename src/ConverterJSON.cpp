@@ -78,16 +78,19 @@ std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath)
     {
         jsonRequests = nh::json::parse(jsonFileRequests);
         jsonFileRequests.close();
-        jsonRequests.at(jsonPath).get_to(requests);
     }
     catch (nh::json::parse_error& ex)
     {
+        jsonFileRequests.close();
         return std::move(requests);
     }
     catch (...)
     {
+        jsonFileRequests.close();
         return std::move(requests);
     }
+
+    jsonRequests.at("Requests").get_to(requests);
 
     return requests;
 }
@@ -100,10 +103,10 @@ void ConverterJSON::putAnswers(const listAnswers& answers, const std::string& js
 
     for(const auto& answer: answers)
     {
-        if(answer.first.empty())
+        if(!answer.first.empty())
         {
             jsonAnswers["Answers"][answer.second]["result"] = true;
-            jsonAnswers["Answers"][answer.second]["relevance"] = std::get<0>(answer);
+            jsonAnswers["Answers"][answer.second]["relevance"] = answer.first;
         }
         else
             jsonAnswers["Answers"][answer.second]["result"] = false;
