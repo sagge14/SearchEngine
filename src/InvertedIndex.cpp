@@ -1,10 +1,7 @@
 //
 // Created by user on 01.02.2023.
 //
-//  std:: setlocale(LC_ALL, "Russian");
 #include "InvertedIndex.h"
-#include <iostream>
-#include <utility>
 
 void InvertedIndex::updateDocumentBase(size_t threadCount)
 {
@@ -16,8 +13,10 @@ void InvertedIndex::updateDocumentBase(size_t threadCount)
 
 void InvertedIndex::allFilesIndexing(size_t _threadCount) {
 
-/** Файлы индексации делятся поровну между потоками, если @param  _threadCount = 0,
- * то количество потоков будет равно количеству ядер процессора*/
+/** Файлы индексации делятся поровну @param step между потоками, если @param  _threadCount = 0,
+ * то количество потоков будет равно количеству ядер процессора, если заданное из настроек количество потоков
+ * больше количества индексируемых файлов, то количество потоков будет равно количеству индексируемых файлов.
+ * */
 
     size_t size = docPaths.size();
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
@@ -103,6 +102,9 @@ InvertedIndex::InvertedIndex(const vector<basicString>& _docPaths) :InvertedInde
 
 void InvertedIndex::addToLog(const string &s) const {
 
+    /**
+    Функция для записи информации в лог-файл*/
+
     char dataTime[20];
     time_t now = std::time(nullptr);
     strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
@@ -117,7 +119,7 @@ void InvertedIndex::addToLog(const string &s) const {
 mapEntry InvertedIndex::getWordCount(const string &s) {
     /** Функция возвращающая @param mapEntry - обьект типа map<size_t,size_t>,
       * где first - индекс файла, а second - количество сколько раз в это файле встрчается
-      * поисковое слово (ключ карты @param freqDictionary) */
+      * поисковое слово (ключ карты std::map @param freqDictionary) */
 
     auto f = freqDictionary.find(s);
     if(f != freqDictionary.end())

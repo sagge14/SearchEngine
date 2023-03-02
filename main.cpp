@@ -31,12 +31,12 @@ int main() {
                 std::cout << "Enter request:";
                 std::getline(std::cin, request);
 
-                list<tuple<string, float>> results = myServer.getAnswer(request);
+                list<pair<string, float>> results = myServer.getAnswer(request);
 
                 std::cout << "--- Result: " << results.size() << " ---" << endl;
 
                 for(const auto& result: results)
-                    std::cout << get<0>(result) << " \trelativeIndex:" << get<1>(result) << endl;
+                    std::cout << result.first << " \trelativeIndex:" << result.second << endl;
 
                 std::cout << "---End---" << endl;
             }

@@ -6,7 +6,7 @@
 #include "InvertedIndex.h"
 #include "SearchServer.h"
 
-typedef std::list<std::tuple<std::string, float>> listAnswer;
+typedef std::list<std::pair<std::string, float>> listAnswer;
 
 /** Перед запуском тестов необходимо в файле "Settings.h"
   * установить #define TEST_MODE true
@@ -76,7 +76,7 @@ TEST(TestCaseInvertedIndex, TestInvertedIndexMissingWord) {
     };
     TestInvertedIndexFunctionality(docs, requests, expected);
 }
-TEST(TestCaseSearchServer, TestTop5_1) {
+TEST(TestCaseSearchServer, TestTop5) {
     const vector<basicString> docs = {
             "london is the capital of great britain",
             "paris is the capital of france",
@@ -115,7 +115,7 @@ TEST(TestCaseSearchServer, TestTop5_1) {
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
-TEST(TestCaseSearchServer, TestTop5_2) {
+TEST(TestCaseSearchServer, TestTop5_MissingWord) {
     const vector<basicString> docs = {
             "Moscow is my favorite city, also Moscow is the capital of Russia",
             "berlin is the capital of germany",
@@ -124,7 +124,7 @@ TEST(TestCaseSearchServer, TestTop5_2) {
             "A capital is main city in any country",
             "moscow is the capital of russia!",
     };
-    string request = {"moscow is the capital of russia"};
+    string request = {"moscow is the capital of russia MissingWord"};
     const listAnswer expected = {
 
                     {"0", 1},
@@ -153,6 +153,23 @@ TEST(TestCaseSearchServer, TestTop5_Extact_Search) {
                     {"5", 0.75}
             }
     };
+    SearchServer srv(docs, true);
+    listAnswer result = srv.getAnswer(request);
+    ASSERT_EQ(result, expected);
+}
+TEST(TestCaseSearchServer, TestTop5_Extact_Search_MissingWord) {
+    const vector<basicString> docs = {
+            "Moscow is my favorite city, also Moscow is the capital of Russia",
+            "berlin is the capital of germany",
+            "I was born in Moscow",
+            "I from Russia",
+            "A capital is main city in any country",
+            "moscow is the capital of russia",
+    };
+    string request = {"moscow is the capital of Russia MissingWord"};
+
+    const listAnswer expected = {};
+
     SearchServer srv(docs, true);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);

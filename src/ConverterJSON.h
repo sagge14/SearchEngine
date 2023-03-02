@@ -6,15 +6,14 @@
 #include <utility>
 #include <vector>
 #include <list>
-#include <tuple>
 #include <iostream>
 #include "nlohmann/json.hpp"
 #include "Settings.h"
 #include <exception>
 
 namespace nh = nlohmann;
-typedef std::list<std::tuple<std::string, float>> listAnswer;
-typedef std::list<std::tuple<listAnswer, std::string>> listAnswers;
+typedef std::list<std::pair<std::string, float>> listAnswer;
+typedef std::list<std::pair<listAnswer, std::string>> listAnswers;
 
 class ConverterJSON {
 

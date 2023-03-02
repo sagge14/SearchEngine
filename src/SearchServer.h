@@ -2,19 +2,8 @@
 // Created by user on 02.02.2023.
 //
 #pragma once
-#include <iostream>
-#include <list>
-#include <set>
-#include <map>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
-#include <algorithm>
-#include <thread>
-#include <mutex>
-#include <tuple>
-#include <utility>
-#include <iterator>
+
+
 #include "ConverterJSON.h"
 #include "InvertedIndex.h"
 
@@ -22,8 +11,8 @@ using namespace std;
 
 typedef string basicString;
 typedef set<size_t> setFileInd;
-typedef list<tuple<string, float>> listAnswer;
-typedef list<tuple<listAnswer, string>> listAnswers;
+typedef list<pair<basicString, float>> listAnswer;
+typedef list<pair<listAnswer, basicString>> listAnswers;
 
 class SearchServer {
 
@@ -75,12 +64,12 @@ private:
         size_t fileInd{0};
         string filePath;
 
-        [[nodiscard]] float getRelativeIndex() const { return (float) sum / (float) max;}
+       float getRelativeIndex() const { return (float) sum / (float) max;}
 
         bool operator == (const RelativeIndex& other) const {return (sum == other.sum);}
         bool operator < (const RelativeIndex& r) const {return sum > r.sum;}
 
-        RelativeIndex(size_t fileInd, const set<basicString>& request, const InvertedIndex* index, bool exactSearch);
+        RelativeIndex(size_t fileInd, const set<basicString>& request, const InvertedIndex* index, bool exactSearch = false);
         ~RelativeIndex() = default;
     };
 
@@ -104,14 +93,14 @@ private:
 
     void trustSettings() const;
     bool checkHash(bool resetHash = false) const;
-    [[nodiscard]] setFileInd intersectionSetFiles(const set<basicString>& request) const;
+    setFileInd intersectionSetFiles(const set<basicString>& request) const;
     static set<basicString> getUniqWords(basicString& text);
     static vector<basicString> getAllFilesFromDir(const basic_string<char>& dir);
     void addToLog(const string& s) const;
 
 public:
 
-    /** @param getAnswer функция возвращающая резултат запроса @param request виде идентификатора
+    /** @param getAnswer функция возвращающая результат запроса @param request виде идентификатора
       * файла (пусть или индекс) и соответствующей файлу относительной релевантности.*
       * @param getAllAnswers функция возвращает результаты всех запросов из @param requests.*
       * @param getTimeOfUpdate функция возвращает длительность последнего обновления базы индексов*
@@ -122,17 +111,20 @@ public:
     struct myExp : public std::exception
     {
         ErrorCodes codeExp{};
-    public:
-        myExp() = default;
         string dir;
+
+    public:
+
+        void show () const;
         explicit myExp(ErrorCodes _codeExp) : codeExp(_codeExp){};
         explicit myExp(string  _s): codeExp(ErrorCodes::WRONGDIRRECTORY), dir(std::move(_s)){};
-        void show () const;
+
+        myExp() = default;
     };
 
-    [[nodiscard]] listAnswer getAnswer(basicString& request) const;
-    [[nodiscard]] listAnswers getAllAnswers(vector<string> requests) const;
-    [[nodiscard]] size_t getTimeOfUpdate() const;
+    listAnswer getAnswer(basicString& request) const;
+    listAnswers getAllAnswers(vector<string> requests) const;
+    size_t getTimeOfUpdate() const;
     void updateDocumentBase();
     void showSettings() const;
     explicit SearchServer(Settings&&  settings);
@@ -140,12 +132,13 @@ public:
 
     ~SearchServer();
 
+/** Упращенная версия конструктора @param SearchServer для тестирования некоторых функций.*/
     #if TEST_MODE == true
     explicit SearchServer(const vector<basicString>& _docPaths, bool exactSearch = false)
     {
-        settings.exactSearch = exactSearch;
-        index = new InvertedIndex(_docPaths);
-        index->updateDocumentBase();
+    settings.exactSearch = exactSearch;
+    index = new InvertedIndex(_docPaths);
+    index->updateDocumentBase();
     }
     #endif
 };

@@ -4,8 +4,8 @@
 #include "SearchServer.h"
 
 vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
-
-    /** Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
+    /**
+    Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
 
     namespace fs = std::filesystem;
     auto recursiveGetFileNamesByExtension = [](const string &path)
@@ -24,46 +24,45 @@ vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
 }
 
 setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) const {
-
-    /** В основе работы функции математическое понятие пересечения множеств (std::set)
-     * В начале мы проверяем каждое слово из запроса @param request на наличие в словаре @param freqDictionary
-     * и составляем лист @param wordList обьектов @param Word который хранит в себе все слова запроса и
-     * соответствующее каждому слову количество файлов где оно встречается.
+    /**
+     * Если сервер работает в режиме "точного поиска" @param 'settings.exactSearch' ==  true:
+     *  В основе работы функции математическое понятие пересечения множеств (std::set)
+     *  В начале мы проверяем каждое слово из запроса @param request на наличие в словаре @param freqDictionary
+     *  и составляем лист @param wordList обьектов @param Word который хранит в себе все слова запроса и
+     *  соответствующее каждому слову количество файлов где оно встречается.
      *
-     * Если слово из запроса @param request не найдено в @param freqDictionary - то возвращается
-     * пустое множество - "return {}" и работа функции прекращается.
+     *  Если слово из запроса @param request не найдено в @param freqDictionary - то возвращается
+     *  пустое множество - "return {}" и работа функции прекращается.
      *
-     * Далее @param wordList сортируется по возрастанию количества документов в которых встречается поисковое слово,
-     * чтобы в начале списка были самые редкие слова, встречающиеся в наименьшем количеств документов.
+     *  Далее @param wordList сортируется по возрастанию количества документов в которых встречается поисковое слово,
+     *  чтобы в начале списка были самые редкие слова, встречающиеся в наименьшем количеств документов.
      *
-     * Далее выполняются пересечения множеств @param setFileInd - соответствующих каждому поисковому слову,
-     * получаемых с помощью лямбда-функции @param getSetFromMap из карты (std::map) @param freqDictionary  -
-     * где по ключу карты (поисковое слово) содержится map<size_t,size_t> где first - это индекс файла, а second
-     * количество сколько раз ключ карты (поисковое слово) @param freqDictionary содержится в файле с индексом first.
+     *  Далее выполняются пересечения множеств @param setFileInd - соответствующих каждому поисковому слову,
+     *  получаемых с помощью лямбда-функции @param getSetFromMap из карты (std::map) @param freqDictionary  -
+     *  где по КЛЮЧУ КАРТЫ (поисковое слово) содержится map<size_t,size_t> где first - это индекс файла, а second
+     *  количество сколько раз КЛЮЧ КАРТЫ @param freqDictionary содержится в файле с индексом first.
      *
-     * Сначала выполняется пересечения самых маленьких множеств фаловых индексов @param setFileInd
-     * соответствующих самым редким словам, т.к. для таких множеств самая большая вероятность непересекаемости,
-     * что позволит быстрее выявить отсутствие файлов содержащих все слова поискового запроса.
+     *  Сначала выполняется пересечения самых маленьких множеств фаловых индексов @param setFileInd
+     *  соответствующих самым редким словам, т.к. для таких множеств самая большая вероятность непересекаемости,
+     *  что позволит быстрее выявить отсутствие файлов содержащих все слова поискового запроса.
      *
-     * В цикле while выполняется пересечение всех множеств @param setFileInd соответствующих
-     * словам поискового запроса начиная с самих маленьких т.к. мы сделали перед этим "wordList.sort()"
-     * и возвращается результат этого пресечения @param result - множество @param setFileInd индексов файлов содержащих
-     * все слова из поискового запроса @param request - оно может быть пустым если пересечений не найдено, значит
-     * документов соджержащих все слова из запроса - нет!
+     *  В цикле while выполняется пересечение всех множеств @param setFileInd соответствующих
+     *  словам поискового запроса начиная с самих маленьких т.к. мы сделали перед этим "wordList.sort()"
+     *  и возвращается результат этого пресечения @param result - множество @param setFileInd индексов файлов содержащих
+     *  все слова из поискового запроса @param request - оно может быть пустым если пересечений не найдено, значит
+     *  документов соджержащих все слова из запроса - нет!
+     *
+     * Если сервер работает в режиме обычного поиска @param 'settings.exactSearch' ==  false
+     * (необязательно все слова запроса должны содержаться в файле-результате):
+     *  Просто находим все документы содержащие хотябы одно слово из запроса, обьединяем их в множество
+     *  @param setFileInd @param result возвращаем результат :)
      **/
-
 
     if(request.empty())
         return {};
 
     setFileInd result, first;
     list<Word> wordList;
-
-    for(const auto& word:request)
-        if(index->freqDictionary.find(word) != index->freqDictionary.end())
-            wordList.emplace_back(word, index->freqDictionary.at(word).size());
-        else
-            return {};
 
     auto getSetFromMap = [this](const basicString& word) {
         setFileInd s;
@@ -72,6 +71,14 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
         return s;
     };
 
+    for(const auto& word:request)
+        if(index->freqDictionary.find(word) != index->freqDictionary.end())
+            wordList.emplace_back(word, index->freqDictionary.at(word).size());
+        else if (!settings.exactSearch)
+            continue;
+        else
+            return {};
+
     if(!settings.exactSearch)
     {
         for(const auto& w: wordList)
@@ -79,7 +86,6 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
             auto sSet = getSetFromMap(w.word);
             result.insert(sSet.begin(),sSet.end());
         }
-
         return result;
     }
 
@@ -110,13 +116,12 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
 }
 
 listAnswer SearchServer::getAnswer(basicString& _request) const {
-
     /** Сначала с помощью атомарной булевой переменной @param work проверяем не осущетвляется ли в данный
-     * момент времени обновление базы индексов (переиндексация файлов заданных в настройках сервера).
+     * момент времени обновление базы индексов (переиндексация файлов, заданных в настройках сервера).
      * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и раз в 2 секунды
      * проверяем закончилась ли работа по переиндексации и далее выполняем запрос.
      * Для выполнения запроса @param _request сначала получаем с помощью функции @param getUniqWords
-     * std::set  состоящий из уникальных слов запроса (разделитель пробел)
+     * std::set  состоящий из уникальных слов запроса (разделитель пробел),
      * содержащих только буквы и цифры.*
      * Далее с помощью функции @param intersectionSetFiles находятся все файлы удовлетворяющие поисковому запросу,
      * для каждого из них расчитывается абсолютная релевантность в процессе составления списка @param Results
@@ -124,8 +129,8 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
      * максимальная абсолютная релевантность - обнуляется.
      * Далее список @param Results сортируется по убыванию абсолютной релевантности и из него формируется
      * окончательный ответ @param out типа @param listAnswer  в виде списка пар идентификаторов документа (путь
-     * или индекс в зависимости от настроек сервера) и относительной релевантности,
-     * ограниченного максимальным размером ответа  @param maxResponse.
+     * или индекс в зависимости от настроек сервера) и относительной релевантности.
+     * Размером списока ответов ограничен @param maxResponse.
      * */
 
     if(index->work)
@@ -159,8 +164,7 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
     return out;
 }
 
-set<basicString> SearchServer::getUniqWords(basicString& text)
-{
+set<basicString> SearchServer::getUniqWords(basicString& text) {
     /**
     Функция разбиения строки @param text на std::set слов.*/
 
@@ -182,7 +186,6 @@ set<basicString> SearchServer::getUniqWords(basicString& text)
 }
 
 listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
-
     /**
     Формируем лист ответов на все запросы, с возможностью выбора, что использовать в качестве
      идентификатора файла - индекс или текст запроса.*/
@@ -192,11 +195,11 @@ listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
 
     for(auto& request: requests)
         if(settings.requestText)
-            out.push_back(make_tuple(getAnswer(request), request));
+            out.push_back(make_pair(getAnswer(request), request));
         else
         {
             string nRequest = i < 10 ? "00" + to_string(i) : i < 100 ? "0" + to_string(i) : to_string(i);
-            out.push_back(make_tuple(getAnswer(request), "request" + nRequest));
+            out.push_back(make_pair(getAnswer(request), "request" + nRequest));
             i++;
         }
 
@@ -215,11 +218,20 @@ void SearchServer::updateDocumentBase() {
 
 SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     /**
-    В конструкторе сервера импортируется настройки потом они проверяются функцией @param trustSettings
+     В конструкторе сервера импортируется настройки, потом они проверяются функцией @param trustSettings
      на корректность, в случае успеха запускаются 2 потока:
-     1. для переодического обновления базы индексов
-     2. для переодического выполнения запросов, по умолчанию из файла "Request.json"
-     Информаци об работе сервера записывается в лог-файл*/
+        1. для переодического обновления базы индексов
+        2. для переодического выполнения запросов, по умолчанию из файла "Request.json"
+
+     Потоки проверяют работу друг друга через сответствующие атомарные булевые переменные @param work:
+     их работы никогда не пресекается - запрос из файла не обрабатывается пока не закончится переиндексирование базы.
+     Перендексирование базы не запускается пока сервер обрабатывает запрос.
+     После окончания переиндексирования базы производится сброс хеша последнего запроса функцией
+     @param checkHash(true), true - как раз передается чтобы сбросить хеш. После этого последний запрос будет обработан
+     заново уже на основе новой базы индексов.
+
+     Информаци об работе сервера записывается в лог-файл.
+     */
 
     settings = (std::move(_settings));
     trustSettings();
@@ -231,13 +243,12 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     else
         index = new InvertedIndex(getAllFilesFromDir(settings.dir));
 
-    auto periodUpdate = [this]()
+    auto periodicUpdate = [this]()
     {
         while(true)
         {
             if(!work)
             {
-
                 addToLog("Index database update started!");
 
                 this->updateDocumentBase();
@@ -258,7 +269,7 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
         }
 
     };
-    auto periodJsonSearch = [this]()
+    auto periodicJsonSearch = [this]()
     {
         while(true)
         {
@@ -276,21 +287,20 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
         }
     };
 
-    threadUpdate = new thread(periodUpdate);
-    threadJsonSearch = new thread(periodJsonSearch);
+    threadUpdate = new thread(periodicUpdate);
+    threadJsonSearch = new thread(periodicJsonSearch);
     threadUpdate->detach();
     threadJsonSearch->detach();
 }
 
 void SearchServer::trustSettings() const {
-
     /**
     Функция проверяет корректность настроек сервера:
-     1. имя сервера не может быть пустым.
-     2. количество потоков индексирующих базу не может быть отрицательным
+     1. Имя сервера не может быть пустым.
+     2. Количество потоков индексирующих базу не может быть отрицательным.
      3. Файлы для индексирования должны браться либо из папки указанной в @param 'settings.dir'
-     либо напрямую из файла настроек сервера (по умолчанию Settings.json)
-     Если настройки не корректны выбрасывается соответствующее исключение
+        либо напрямую из файла настроек сервера (по умолчанию Settings.json).
+    Если настройки не корректны выбрасывается соответствующее исключение.
      */
 
     auto allFilesNotExist = [this](){
@@ -309,7 +319,6 @@ void SearchServer::trustSettings() const {
 }
 
 bool SearchServer::checkHash(bool resetHash) const {
-
     /**
     Функция сравнения хешей очередного и последнего запроса*/
 
@@ -342,7 +351,7 @@ bool SearchServer::checkHash(bool resetHash) const {
 
 void SearchServer::addToLog(const string &s) const {
     /**
-    Функция для записи информации работ сервера в лог-файл*/
+    Функция для записи информации работе сервера в лог-файл*/
 
     char dataTime[20];
     time_t now = std::time(nullptr);
@@ -355,42 +364,56 @@ void SearchServer::addToLog(const string &s) const {
 }
 
 SearchServer::~SearchServer() {
-
+    /**
+    Деструктор класса*/
     delete  index;
     delete  threadUpdate;
     delete  threadJsonSearch;
-
 }
 
 void SearchServer::showSettings() const {
+    /**
+    Для отображения текущих настроек сервера*/
     settings.show();
 }
 
 size_t SearchServer::getTimeOfUpdate() const {
+    /**
+    Для получения длительности последнего обновления базы индексов*/
     return time;
 }
 
 SearchServer::RelativeIndex::RelativeIndex(size_t _fileInd, const set<basicString> &request, const InvertedIndex* index, bool exactSearch) : fileInd(_fileInd)
 {
     /**
-    ОБЯЗАТЕЛЬНО РАСПИСАТЬ!!!*/
+    Т.к. сервер может работать в двух режимах: точного поиска и обычного, для которого не обязательно все слова из запроса
+     должны одержаться в файле-результате, то во втором случае перед вычисление количества сколько раз слово
+     встречается в файле нужно проверить есть ли вообще это слово в словаре @param freqDictionary и есть ли
+     это слово в самом документе с индексом @param fileInd - эту проверку осуществляет функция @param checkWordAndFileInd.
+     @param sum статическое поле класса, хранит максимальную абсолютную релевантность файла-результата, используется для
+     вычисления относительной релевантности.
+     */
+
+    auto checkWordAndFileInd =[index,this] (const auto& word) {
+        return (index->freqDictionary.find(word) != index->freqDictionary.end() &&
+                index->freqDictionary.find(word)->second.find(fileInd) != index->freqDictionary.find(word)->second.end());
+    };
 
     filePath = index->docPaths.at(fileInd);
 
     for(const auto& word:request)
     {
-        if(!exactSearch && index->freqDictionary.find(word) != index->freqDictionary.end()
-            && index->freqDictionary.find(word)->second.find(fileInd) != index->freqDictionary.find(word)->second.end())
+        if(exactSearch || checkWordAndFileInd(word))
          sum += index->freqDictionary.at(word).at(fileInd);
     }
-
 
     if(sum > max)
         max = sum;
 }
 
 void SearchServer::myExp::show() const {
-
+    /**
+    Сообщения о возможных ошибках в настройках сервера*/
     if(codeExp == ErrorCodes::NAME)
         cout << "Server: settings error!" << endl;
     if(codeExp == ErrorCodes::THREADCOUNT)
