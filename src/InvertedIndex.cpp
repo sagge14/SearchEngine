@@ -26,9 +26,15 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
     vector<thread> vThreads;
 
     auto smartFileInd = [this](size_t begin, size_t end){
-        for(size_t  fileInd = begin; fileInd < end; fileInd++)
-            fileIndexing(fileInd);};
 
+
+        for(size_t  fileInd = begin; fileInd < end; fileInd++)
+            fileIndexing(fileInd);
+        cout << " task " << begin << "-" << end << " :" << (std::thread::id) std::this_thread::get_id() << endl;
+
+    };
+/*
+    auto begin = std::chrono::high_resolution_clock::now();
     for(size_t i = 0; i <= size - step; i += step)
         vThreads.emplace_back(smartFileInd, i, i + step);
 
@@ -38,6 +44,32 @@ void InvertedIndex::allFilesIndexing(size_t _threadCount) {
     for(auto& item:vThreads)
         item.join();
 
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << " no pool " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+*/
+    auto oneInd = [this](size_t i)
+    {
+        fileIndexing(i);
+    };
+
+    auto begin = std::chrono::high_resolution_clock::now();
+    thread_pool pool(12);
+    for(int i = 0; i < size; i++)
+        pool.add_task(oneInd,i);
+    pool.wait_all();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "pool " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+
+   /* begin = std::chrono::high_resolution_clock::now();
+    for(int i = 0; i < size; i++)
+        oneInd(i);
+
+    end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "1 thread " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+*/
 }
 
 void InvertedIndex::fileIndexing(size_t fileInd)
@@ -113,6 +145,7 @@ void InvertedIndex::addToLog(const string &s) const {
     strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
 
     std::lock_guard<std::mutex> myLock(logMutex);
+
     logFile.open("log.ini", ios::app);
     logFile << "[" << dataTime << "] " << s << endl;
     logFile.close();

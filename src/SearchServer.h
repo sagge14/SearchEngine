@@ -4,6 +4,8 @@
 #pragma once
 #include "ConverterJSON.h"
 #include "InvertedIndex.h"
+#include "AsioServer.h"
+#include <condition_variable>
 
 using namespace std;
 
@@ -11,7 +13,6 @@ typedef string basicString;
 typedef set<size_t> setFileInd;
 typedef list<pair<basicString, float>> listAnswer;
 typedef list<pair<listAnswer, basicString>> listAnswers;
-
 class SearchServer {
 
    /** @param work для проверки выполнения в текущий момент времени запроса.*
@@ -69,15 +70,24 @@ class SearchServer {
         ~RelativeIndex() = default;
     };
 
-    atomic<bool> work{};
+    mutable atomic<bool> work{};
     hash<string> hashRequest;
     InvertedIndex* index{};
     Settings settings{};
     size_t time{};
     thread *threadUpdate{};
-    thread *threadJsonSearch{};
+    thread *threadAsio{};
     mutable ofstream logFile;
     mutable mutex logMutex;
+    boost::asio::io_context io_context;
+    AsioServer *asioServer;
+
+
+    friend class session;
+
+    mutable std::condition_variable cv;
+    mutable mutex updateM;
+    mutable mutex searchM;
 
    /** @param trustSettings функция проверки корректности настроек сервера.*
        @param checkHash функция для сравнения хэша последнего и очередного запроса.*

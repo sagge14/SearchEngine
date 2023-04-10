@@ -16,7 +16,6 @@ void ConverterJSON::setSettings(const Settings &val) {
     jsonSettings["config"]["thread_count"] = val.threadCount;
     jsonSettings["config"]["dir"] = val.dir;
     jsonSettings["config"]["ind_time"] = val.indTime;
-    jsonSettings["config"]["search_time"] = val.searchTime;
     jsonSettings["config"]["text_request"] = val.requestText;
     jsonSettings["config"]["exact_search"] = val.exactSearch;
     jsonSettings["Files"] = val.files;
@@ -47,7 +46,6 @@ Settings ConverterJSON::getSettings(const std::string& jsonPath) {
         jsonSettings.at("config").at("dir").get_to(s.dir);
         jsonSettings.at("config").at("exact_search").get_to(s.exactSearch);
         jsonSettings.at("config").at("ind_time").get_to(s.indTime);
-        jsonSettings.at("config").at("search_time").get_to(s.searchTime);
         jsonSettings.at("config").at("text_request").get_to(s.requestText);
         jsonSettings.at("Files").get_to(s.files);
     }
@@ -95,7 +93,7 @@ std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath)
     return requests;
 }
 
-void ConverterJSON::putAnswers(const listAnswers& answers, const std::string& jsonPath) {
+std::string ConverterJSON::putAnswers(const listAnswers& answers, const std::string& jsonPath) {
     /**
      функция записи ответов сервера на запросы в json файл. */
 
@@ -113,8 +111,36 @@ void ConverterJSON::putAnswers(const listAnswers& answers, const std::string& js
     }
 
     std::ofstream jsonFileSettings(jsonPath);
-    jsonFileSettings << jsonAnswers;
+
+    jsonFileSettings << std::setw(2) << jsonAnswers;
+    std::string ss = nh::to_string(jsonAnswers);
     jsonFileSettings.close();
+    return move(ss);
 }
+
+std::vector<std::string> ConverterJSON::getRequestsFromString(const std::string &jsonString) {
+
+    std::vector<std::string> requests;
+    nh::json jsonRequests;
+
+    try
+    {
+        jsonRequests = nh::json::parse(jsonString);
+    }
+    catch (nh::json::parse_error& ex)
+    {
+        return std::move(requests);
+    }
+    catch (...)
+    {
+        return std::move(requests);
+    }
+
+    jsonRequests.at("Requests").get_to(requests);
+
+    return requests;
+}
+
+
 
 

@@ -14,6 +14,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include "TreadPool.h"
 #include "Settings.h"
 using namespace std;
 

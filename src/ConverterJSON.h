@@ -37,6 +37,7 @@ public:
     static void setSettings(const Settings& val);
     static Settings getSettings(const std::string& jsonPath = "Settings.json");
     static std::vector<std::string> getRequests(const std::string& jsonPath = "Requests.json");
-    static void putAnswers(const listAnswers& answers, const std::string& jsonPath = "Answers.json");
+    static std::vector<std::string> getRequestsFromString(const std::string& jsonString);
+    static std::string putAnswers(const listAnswers& answers, const std::string& jsonPath = "Answers.json");
 };
 

@@ -10,7 +10,7 @@
 //#define TEST_MODE true
 #define TEST_MODE false
 
-struct Settings
+class Settings
 {
     /** @param name имя сервера.
       * @param version версия сервера,
@@ -20,9 +20,12 @@ struct Settings
       * @param threadCount устанавливает количество потоков осуществляющих индексирование файлов,
       * если установить значение 0 - то количество потоков будет выбрано автоматически, по количеству ядер процессора.*
       * @param indTime устанавливает период переиндексации файлов в секундах.*
-      * @param searchTime устанавливает период выполнения запросов из файла (по умолчанию "Request.json").
       * @param maxResponse устанавливает максимальное количество ответов на запрос.*
       * @param requestText для отображения в файле ответов вместо идентификаторов запросов текста запросов */
+
+    inline static Settings* settings = nullptr;
+
+public:
 
     std::string name;
     std::string version;
@@ -30,18 +33,17 @@ struct Settings
     bool exactSearch;
     int threadCount{};
     size_t indTime{};
-    size_t searchTime{};
     int maxResponse{};
     bool requestText{};
     std::vector<std::string> files;
 
+    static Settings* getSettings();
+
     void show() const;
 
-    Settings& operator=(Settings&& s) noexcept ;
     Settings& operator=(const Settings& s) = default;
-
     Settings(const Settings& s) = default;
-    Settings(Settings&& s) noexcept;
+
     Settings();
 };
 

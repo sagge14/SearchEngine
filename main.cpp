@@ -1,6 +1,8 @@
 #include <iostream>
+#include <boost/asio.hpp>
 #include "SearchServer.h"
 #include "ConverterJSON.h"
+#include "AsioServer.h"
 
 int main() {
     try

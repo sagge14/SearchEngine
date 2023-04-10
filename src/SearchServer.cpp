@@ -3,6 +3,7 @@
 //
 #include "SearchServer.h"
 
+
 vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
     /**
     Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
@@ -50,7 +51,7 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
      *  словам поискового запроса начиная с самих маленьких т.к. мы сделали перед этим "wordList.sort()"
      *  и возвращается результат этого пресечения @param result - множество @param setFileInd индексов файлов содержащих
      *  все слова из поискового запроса @param request - оно может быть пустым если пересечений не найдено, значит
-     *  документов соджержащих все слова из запроса - нет!
+     *  документов содержащих все слова из запроса - нет!
      *
      * Если сервер работает в режиме обычного поиска @param 'settings.exactSearch' ==  false
      * (необязательно все слова запроса должны содержаться в файле-результате):
@@ -133,12 +134,16 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
      * Размером списока ответов ограничен @param maxResponse.
      * */
 
+    work = true;
+
     if(index->work)
         std::cout << "Update base is running, pls wait!!!" << endl;
-    while(index->work)
-        this_thread::sleep_for(std::chrono::seconds(2));
+    updateM.lock();
+
+    std::cout << "Request start !!!" << (std::thread::id) std::this_thread::get_id() << endl;
 
     set<basicString> request = getUniqWords(_request);
+
     list<RelativeIndex> Results;
     listAnswer out;
 
@@ -146,6 +151,8 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
 
     for(const auto& fileInd: intersectionSetFiles(request))
         Results.emplace_back(fileInd, request, index,settings.exactSearch);
+
+    this_thread::sleep_for(std::chrono::seconds(5));
 
     Results.sort();
 
@@ -159,8 +166,21 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
 
         i++;
         if(i == settings.maxResponse)
+        {
+            if(!updateM.try_lock())
+                updateM.unlock();
+
+            work = false;
+            std::cout << "Request finish!!!" << endl;
             return out;
+        }
+
     }
+
+    updateM.unlock();
+
+    work = false;
+    std::cout << "Request finish!!!" << endl;
     return out;
 }
 
@@ -203,7 +223,6 @@ listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
             i++;
         }
 
-    addToLog(to_string(requests.size()) + " requests processed!");
     return out;
 }
 
@@ -247,50 +266,39 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     {
         while(true)
         {
-            if(!work)
-            {
-                addToLog("Index database update started!");
+            if(work)
+                std::cout << "Doing request, update later!!!" << endl;
 
-                this->updateDocumentBase();
-                time = getTimeOfUpdate();
+            updateM.lock();
 
-                addToLog("Index database update completed! "+ to_string(index->docPaths.size()) + " files, "
+            std::cout << "Index database update started!!!! " << (std::thread::id) std::this_thread::get_id() << endl;
+
+            addToLog("Index database update started!");
+
+            this->updateDocumentBase();
+            time = getTimeOfUpdate();
+
+            addToLog("Index database update completed! "+ to_string(index->docPaths.size()) + " files, "
                     + to_string(index->freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
                     + to_string(time) + " seconds.");
 
-                checkHash(true);
-            }
-            else
-            {
-                this_thread::sleep_for(std::chrono::seconds(2));
-                continue;
-            }
+            std::cout << "Index database update finish!" << endl;
+
+            updateM.unlock();
+
             this_thread::sleep_for(std::chrono::seconds(settings.indTime));
         }
 
     };
-    auto periodicJsonSearch = [this]()
-    {
-        while(true)
-        {
-            if(!index->work && !index->freqDictionary.empty() && checkHash())
-            {
-                work = true;
-                try
-                {
-                    ConverterJSON::putAnswers(this->getAllAnswers(ConverterJSON::getRequests()));
-                }
-                catch(...){}
-                work = false;
-            }
-            this_thread::sleep_for(std::chrono::milliseconds (settings.searchTime));
-        }
-    };
 
     threadUpdate = new thread(periodicUpdate);
-    threadJsonSearch = new thread(periodicJsonSearch);
+
+    asioServer = new AsioServer(io_context, std::atoi("15001"), this);
+    threadAsio = new thread([this](){io_context.run();});
+
     threadUpdate->detach();
-    threadJsonSearch->detach();
+    threadAsio->detach();
+
 }
 
 void SearchServer::trustSettings() const {
@@ -357,8 +365,8 @@ void SearchServer::addToLog(const string &s) const {
     strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
 
     std::lock_guard<std::mutex> myLock(logMutex);
-    logFile.open("log.ini", ios::app);
-    logFile << "[" << dataTime << "] " << s << endl;
+    logFile.open("log.log", ios::app);
+    logFile << "[" << dataTime << "] " << s + ";" << endl;
     logFile.close();
 }
 
@@ -367,7 +375,8 @@ SearchServer::~SearchServer() {
     Деструктор класса*/
     delete  index;
     delete  threadUpdate;
-    delete  threadJsonSearch;
+    delete  threadAsio;
+    delete  asioServer;
 }
 
 void SearchServer::showSettings() const {

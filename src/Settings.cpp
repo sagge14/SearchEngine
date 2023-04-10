@@ -4,43 +4,6 @@
 
 #include "Settings.h"
 
-Settings& Settings::operator=(Settings &&s) noexcept
-{
-    std::swap(name,s.name);
-    std::swap(version,s.version);
-    std::swap(maxResponse,s.maxResponse);
-    std::swap(files,s.files);
-    std::swap(dir,s.dir);
-    std::swap(threadCount,s.threadCount);
-    std::swap(searchTime,s.searchTime);
-    std::swap(indTime,s.indTime);
-    std::swap(requestText,s.requestText);
-    std::swap(exactSearch,s.exactSearch);
-    s.name = "";
-    s.version = "";
-    s.files.clear();
-    s.maxResponse = 0;
-    s.dir = "";
-    s.threadCount = 0;
-    s.indTime = 0;
-    s.searchTime = 0;
-    s.requestText = false;
-    return *this;
-}
-
-Settings::Settings(Settings &&s) noexcept: Settings()
-{
-    std::swap(name,s.name);
-    std::swap(version,s.version);
-    std::swap(maxResponse,s.maxResponse);
-    std::swap(files,s.files);
-    std::swap(dir,s.dir);
-    std::swap(threadCount,s.threadCount);
-    std::swap(indTime,s.indTime);
-    std::swap(requestText,s.requestText);
-    std::swap(searchTime,s.searchTime);
-    std::swap(exactSearch,s.exactSearch);
-}
 
 void Settings::show() const
 {
@@ -56,7 +19,6 @@ void Settings::show() const
     else
         std::cout << std::thread::hardware_concurrency() << std::endl;
     std::cout << "Index database update period:\t" << indTime << " seconds" << std::endl;
-    std::cout << "Index database update period:\t" << searchTime << " milliseconds" << std::endl;
     std::cout << "Show request as text:\t\t" << std::boolalpha << requestText << std::endl;
     std::cout << "Use exact search:\t\t" << std::boolalpha << exactSearch << std::endl << std::endl;
 }
@@ -69,5 +31,14 @@ Settings::Settings() {
     threadCount = 1;
     maxResponse = 5;
     exactSearch = false;
+
+}
+
+Settings *Settings::getSettings() {
+
+    if(!settings)
+        settings = new Settings();
+
+    return settings;
 
 }

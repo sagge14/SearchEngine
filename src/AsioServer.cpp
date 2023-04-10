@@ -1,0 +1,194 @@
+//
+// Created by Sg on 07.03.2023.
+//
+
+#include "AsioServer.h"
+#include "SearchServer.h"
+
+void session::start() {
+    readSocket();
+}
+
+void session::readSocket() {
+
+    auto self(shared_from_this());
+
+    std::cout << "Connect\t\t" + getRemoteIP() << std::endl;
+    searchServer_->addToLog("Connect\t\t" + getRemoteIP());
+
+    socket_.async_read_some(boost::asio::buffer(&header_, sizeof (header)),
+                            [this, self](boost::system::error_code ec, std::size_t length)
+                            {
+                                if (!ec)
+                                {
+                                    std::cout << "Header read\t" +getRemoteIP() << std::endl;
+                                    searchServer_->addToLog("Header read\t" + getRemoteIP()) ;
+
+                                    if(trustCommand())
+                                    {
+                                        socket_.async_read_some(boost::asio::buffer(data_, max_length),
+                                                                [this, self](boost::system::error_code ec, std::size_t length)
+                                                                {
+                                                                    if (!ec)
+                                                                    {
+                                                                        std::cout << "Received from\t" + getRemoteIP() + "\tcommand '" + getTextCommand(header_.command) << std::endl;
+                                                                        searchServer_->addToLog("Received from\t" + getRemoteIP() + "\tcommand '" + getTextCommand(header_.command));
+
+                                                                        commandExec();
+                                                                    }
+                                                                });
+                                    }
+                                    else
+                                    {
+                                        header_.command = COMMAND::SOMEERROR;
+                                        searchServer_->addToLog("Received from\t" + getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command)+"'");
+                                        writeHeader();
+                                        std::cout << "Socket off\t" + getRemoteIP() << std::endl;
+                                        searchServer_->addToLog("Socket off\t" + getRemoteIP());
+                                    }
+                                }
+                            });
+
+}
+
+void session::commandExec() {
+
+    std::string request(data_, header_.size);
+    std::string answer;
+
+    switch (header_.command) {
+        case COMMAND::SOLOREQUEST:
+        {
+            answer = getAnswer(request); break;
+        }
+        case COMMAND::FILETEXT:
+        {
+            answer = getFile(request); break;
+        }
+        case COMMAND::JSONREGUEST:
+        {
+            answer = ConverterJSON::putAnswers(this->searchServer_->getAllAnswers(ConverterJSON::getRequestsFromString(request))); break;
+        }
+
+    }
+
+    header_.size = std::strlen(answer.c_str());
+    writeHeader();
+    writeToSocket(answer);
+}
+
+
+
+void session::writeHeader() {
+    auto self(shared_from_this());
+    boost::asio::async_write(socket_, boost::asio::buffer(&header_, sizeof(header)),
+                             [this, self](boost::system::error_code ec, std::size_t /*length*/)
+                             {
+                                 if(header_.command == COMMAND::SOMEERROR)
+                                 {
+                                     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+                                     socket_.close(ec);
+                                     header_ = header{};
+                                 }
+                             });
+}
+
+std::string session::getAnswer(std::string& request) {
+
+    stringstream ss;
+
+    list<pair<string, float>> results = searchServer_->getAnswer(request);
+
+    for(const auto& result: results)
+        ss << result.first << " " << result.second << endl;
+
+    return ss.str();
+}
+
+std::string session::getFile(string &request) {
+
+    fstream file(request);
+    if(file.is_open())
+    {
+        std::string text((istreambuf_iterator<char>(file)), (istreambuf_iterator<char>()));
+        return std::move(text);
+    }
+        return "";
+}
+
+std::string session::getRemoteIP() {
+
+    boost::asio::ip::tcp::endpoint remote_ep = socket_.remote_endpoint();
+    boost::asio::ip::address remote_ad = remote_ep.address();
+
+    return remote_ad.to_string();
+}
+
+void session::writeToSocket(const std::string& str) {
+
+    auto self(shared_from_this());
+
+    boost::asio::async_write(socket_, boost::asio::buffer(str, std::strlen(str.c_str())),
+                             [this, self](boost::system::error_code ec, std::size_t /*length*/)
+                             {
+                                 if (!ec)
+                                 {
+                                     searchServer_->addToLog("Request to\t"+ getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command) +"'\tsize " +
+                                        std::to_string(header_.size) + "\tbytes");
+
+                                     readSocket();
+                                 }
+                             });
+}
+
+bool session::trustCommand() {
+
+    bool trust;
+
+    switch(header_.command) {
+        case COMMAND::SOLOREQUEST:
+        case COMMAND::FILETEXT:
+        case COMMAND::JSONREGUEST:
+            trust = true;
+    }
+
+    if(header_.command == COMMAND::SOMEERROR || header_.size > max_length)
+        trust = false;
+
+    return trust;
+}
+
+std::string session::getTextCommand(COMMAND command) {
+    switch (command) {
+        case COMMAND::JSONREGUEST:
+            return "JSON request";
+        case COMMAND::FILETEXT:
+            return "FILE text";
+        case COMMAND::SOLOREQUEST:
+            return "SINGLE request";
+        case COMMAND::SOMEERROR:
+            return "ERROR :(";
+    }
+    return "";
+}
+
+void AsioServer::do_accept() {
+
+    acceptor_.async_accept(
+            [this](boost::system::error_code ec, tcp::socket socket)
+            {
+                if (!ec)
+                    std::make_shared<session>(std::move(socket), searchServer_)->start();
+
+                do_accept();
+            });
+
+}
+
+AsioServer::AsioServer(boost::asio::io_context &io_context, short port, SearchServer* searchServer)
+: acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), searchServer_{searchServer}
+{
+    do_accept();
+}
+
+
