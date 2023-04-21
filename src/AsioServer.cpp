@@ -4,12 +4,17 @@
 
 #include "AsioServer.h"
 #include "SearchServer.h"
+#include <iostream>
+#include <memory>
+#include <utility>
 
-void session::start() {
+using boost::asio::ip::tcp;
+
+void asio_server::session::start() {
     readSocket();
 }
 
-void session::readSocket() {
+void asio_server::session::readSocket() {
 
     auto self(shared_from_this());
 
@@ -51,7 +56,7 @@ void session::readSocket() {
 
 }
 
-void session::commandExec() {
+void asio_server::session::commandExec() {
 
     std::string request(data_, header_.size);
     std::string answer;
@@ -79,7 +84,7 @@ void session::commandExec() {
 
 
 
-void session::writeHeader() {
+void asio_server::session::writeHeader() {
     auto self(shared_from_this());
     boost::asio::async_write(socket_, boost::asio::buffer(&header_, sizeof(header)),
                              [this, self](boost::system::error_code ec, std::size_t /*length*/)
@@ -93,7 +98,7 @@ void session::writeHeader() {
                              });
 }
 
-std::string session::getAnswer(std::string& request) {
+std::string asio_server::session::getAnswer(std::string& request) {
 
     stringstream ss;
 
@@ -105,7 +110,7 @@ std::string session::getAnswer(std::string& request) {
     return ss.str();
 }
 
-std::string session::getFile(string &request) {
+std::string asio_server::session::getFile(string &request) {
 
     fstream file(request);
     if(file.is_open())
@@ -116,7 +121,7 @@ std::string session::getFile(string &request) {
         return "";
 }
 
-std::string session::getRemoteIP() {
+std::string asio_server::session::getRemoteIP() {
 
     boost::asio::ip::tcp::endpoint remote_ep = socket_.remote_endpoint();
     boost::asio::ip::address remote_ad = remote_ep.address();
@@ -124,7 +129,7 @@ std::string session::getRemoteIP() {
     return remote_ad.to_string();
 }
 
-void session::writeToSocket(const std::string& str) {
+void asio_server::session::writeToSocket(const std::string& str) {
 
     auto self(shared_from_this());
 
@@ -141,7 +146,7 @@ void session::writeToSocket(const std::string& str) {
                              });
 }
 
-bool session::trustCommand() {
+bool asio_server::session::trustCommand() {
 
     bool trust;
 
@@ -158,7 +163,7 @@ bool session::trustCommand() {
     return trust;
 }
 
-std::string session::getTextCommand(COMMAND command) {
+std::string asio_server::session::getTextCommand(COMMAND command) {
     switch (command) {
         case COMMAND::JSONREGUEST:
             return "JSON request";
@@ -172,7 +177,7 @@ std::string session::getTextCommand(COMMAND command) {
     return "";
 }
 
-void AsioServer::do_accept() {
+void asio_server::AsioServer::do_accept() {
 
     acceptor_.async_accept(
             [this](boost::system::error_code ec, tcp::socket socket)
@@ -185,7 +190,7 @@ void AsioServer::do_accept() {
 
 }
 
-AsioServer::AsioServer(boost::asio::io_context &io_context, short port, SearchServer* searchServer)
+asio_server::AsioServer::AsioServer(boost::asio::io_context &io_context, short port, search_server::SearchServer* searchServer)
 : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), searchServer_{searchServer}
 {
     do_accept();

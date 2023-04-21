@@ -15,26 +15,26 @@ typedef std::list<std::pair<std::string, float>> listAnswer;
 using namespace std;
 
 void TestInvertedIndexFunctionality(
-        const vector<basicString>& docs,
-        const vector<basicString>& requests,
-        const vector<mapEntry>& expected
+        const vector<string>& docs,
+        const vector<string>& requests,
+        const vector<inverted_index::mapEntry>& expected
 ) {
-    vector<mapEntry> result;
-    InvertedIndex idx(docs);
+    vector<inverted_index::mapEntry> result;
+    inverted_index::InvertedIndex idx(docs);
     idx.updateDocumentBase();
     for(const auto& request : requests) {
-        mapEntry word_count = idx.getWordCount(request);
+        inverted_index::mapEntry word_count = idx.getWordCount(request);
         result.push_back(word_count);
     }
     ASSERT_EQ(result, expected);
 }
 TEST(TestInvertedIndexFunctionality, TestBasic1) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "london is !the capital of  great britain",
             "big ben is the nickname for !the! Great bell the? of the striking clock"
     };
     const vector<basicString> requests = {"london", "the"};
-    const vector<mapEntry> expected = {
+    const vector<inverted_index::mapEntry> expected = {
             {
                     {0, 1}
             }, {{

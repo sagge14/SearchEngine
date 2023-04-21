@@ -1,13 +1,12 @@
 #include <iostream>
-#include <boost/asio.hpp>
 #include "SearchServer.h"
 #include "ConverterJSON.h"
-#include "AsioServer.h"
 
 int main() {
+    using namespace std;
     try
     {
-        SearchServer myServer(ConverterJSON::getSettings());
+        search_server::SearchServer myServer(ConverterJSON::getSettings());
 
         string command;
 
@@ -22,13 +21,13 @@ int main() {
             cout << "-------------------------------" << endl;
             cout << "Enter the command:";
 
-            cin >> command;
+        cin >> command;
             cin.clear();
             system("cls");
 
             if(command == "1")
             {
-                basicString request;
+                string request;
                 cin.ignore();
                 std::cout << "Enter request:";
                 std::getline(std::cin, request);
@@ -58,7 +57,7 @@ int main() {
         e.show();
         system("pause");
     }
-    catch(SearchServer::myExp& e)
+    catch(search_server::SearchServer::myExp& e)
     {
         e.show();
         system("pause");

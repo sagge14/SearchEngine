@@ -4,7 +4,7 @@
 #include "SearchServer.h"
 
 
-vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
+std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const string& dir) {
     /**
     Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
 
@@ -24,7 +24,7 @@ vector<string> SearchServer::getAllFilesFromDir(const string& dir) {
 
 }
 
-setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) const {
+search_server::setFileInd search_server::SearchServer::intersectionSetFiles(const set<string> &request) const {
     /**
      * Если сервер работает в режиме "точного поиска" @param 'settings.exactSearch' ==  true:
      *  В основе работы функции математическое понятие пересечения множеств (std::set)
@@ -65,7 +65,7 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
     setFileInd result, first;
     list<Word> wordList;
 
-    auto getSetFromMap = [this](const basicString& word) {
+    auto getSetFromMap = [this](const std::string& word) {
         setFileInd s;
         for(const auto& z:index->freqDictionary.at(word))
             s.insert(z.first);
@@ -116,7 +116,7 @@ setFileInd SearchServer::intersectionSetFiles(const set<basicString> &request) c
     }
 }
 
-listAnswer SearchServer::getAnswer(basicString& _request) const {
+listAnswer search_server::SearchServer::getAnswer(string& _request) const {
     /** Сначала с помощью атомарной булевой переменной @param work проверяем не осущетвляется ли в данный
      * момент времени обновление базы индексов (переиндексация файлов, заданных в настройках сервера).
      * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и раз в 2 секунды
@@ -142,7 +142,7 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
 
     std::cout << "Request start !!!" << (std::thread::id) std::this_thread::get_id() << endl;
 
-    set<basicString> request = getUniqWords(_request);
+    set<std::string> request = getUniqWords(_request);
 
     list<RelativeIndex> Results;
     listAnswer out;
@@ -150,18 +150,18 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
     RelativeIndex::max = 0;
 
     for(const auto& fileInd: intersectionSetFiles(request))
-        Results.emplace_back(fileInd, request, index,settings.exactSearch);
+        Results.emplace_back(fileInd, request, index, settings.exactSearch);
 
-    this_thread::sleep_for(std::chrono::seconds(5));
+   // this_thread::sleep_for(std::chrono::seconds(5));
 
     Results.sort();
 
     int i = 0;
     for(const auto& r:Results)
     {
-        if(settings.dir.empty())
-            out.emplace_back(to_string(r.fileInd),r.getRelativeIndex());
-        else
+        if(!settings.dir.empty())
+        //    out.emplace_back(to_string(r.fileInd),r.getRelativeIndex());
+       // else
             out.emplace_back(r.filePath,r.getRelativeIndex());
 
         i++;
@@ -184,7 +184,7 @@ listAnswer SearchServer::getAnswer(basicString& _request) const {
     return out;
 }
 
-set<basicString> SearchServer::getUniqWords(basicString& text) {
+std::set<std::string> search_server::SearchServer::getUniqWords(string& text) {
     /**
     Функция разбиения строки @param text на std::set слов.*/
 
@@ -192,8 +192,8 @@ set<basicString> SearchServer::getUniqWords(basicString& text) {
         return isalnum(c) ? tolower(c) : (' '); });
 
     istringstream iss(text);
-    basicString word;
-    set<basicString> out;
+    std::string word;
+    set<std::string> out;
 
     while(iss)
     {
@@ -205,7 +205,7 @@ set<basicString> SearchServer::getUniqWords(basicString& text) {
     return out;
 }
 
-listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
+listAnswers search_server::SearchServer::getAllAnswers(vector<string> requests) const {
     /**
     Формируем лист ответов на все запросы, с возможностью выбора, что использовать в качестве
      идентификатора файла - индекс или текст запроса.*/
@@ -226,16 +226,17 @@ listAnswers SearchServer::getAllAnswers(vector<string> requests) const {
     return out;
 }
 
-void SearchServer::updateDocumentBase() {
+void search_server::SearchServer::updateDocumentBase() {
     /**
     Запускаем обновление базы индексов, записываем в @param time сколько времени уйдет на индексацию. */
 
-    time = (perf_timer<chrono::seconds>::duration([this] (){
-           this->index->updateDocumentBase(settings.threadCount); })
-           ).count();
+    time = inverted_index::perf_timer<chrono::milliseconds>::duration([this]() {
+        this->index->updateDocumentBase(getAllFilesFromDir(settings.dir), settings.threadCount);
+        }).count();
+
 }
 
-SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
+search_server::SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     /**
      В конструкторе сервера импортируется настройки, потом они проверяются функцией @param trustSettings
      на корректность, в случае успеха запускаются 2 потока:
@@ -258,9 +259,9 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
     addToLog("Server " + settings.name + " version " + settings.version + " is running!");
 
     if(settings.dir.empty())
-        index = new InvertedIndex(settings.files);
+        index = new inverted_index::InvertedIndex(settings.files);
     else
-        index = new InvertedIndex(getAllFilesFromDir(settings.dir));
+        index = new inverted_index::InvertedIndex(getAllFilesFromDir(settings.dir));
 
     auto periodicUpdate = [this]()
     {
@@ -274,7 +275,6 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
             std::cout << "Index database update started!!!! " << (std::thread::id) std::this_thread::get_id() << endl;
 
             addToLog("Index database update started!");
-
             this->updateDocumentBase();
             time = getTimeOfUpdate();
 
@@ -282,7 +282,7 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
                     + to_string(index->freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
                     + to_string(time) + " seconds.");
 
-            std::cout << "Index database update finish!" << endl;
+            std::cout << "Index database update finish! " << time << endl;
 
             updateM.unlock();
 
@@ -293,7 +293,7 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
 
     threadUpdate = new thread(periodicUpdate);
 
-    asioServer = new AsioServer(io_context, std::atoi("15001"), this);
+    asioServer = new asio_server::AsioServer(io_context, std::atoi("15001"), this);
     threadAsio = new thread([this](){io_context.run();});
 
     threadUpdate->detach();
@@ -301,7 +301,7 @@ SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
 
 }
 
-void SearchServer::trustSettings() const {
+void search_server::SearchServer::trustSettings() const {
     /**
     Функция проверяет корректность настроек сервера:
      1. Имя сервера не может быть пустым.
@@ -325,7 +325,7 @@ void SearchServer::trustSettings() const {
         throw(myExp(ErrorCodes::NOTFILESTOINDEX));
 }
 
-bool SearchServer::checkHash(bool resetHash) const {
+bool search_server::SearchServer::checkHash(bool resetHash) const {
     /**
     Функция сравнения хешей очередного и последнего запроса*/
 
@@ -343,7 +343,7 @@ bool SearchServer::checkHash(bool resetHash) const {
 
     if(jsonFileRequests.is_open())
     {
-        textRequest = basicString ((istreambuf_iterator<char>(jsonFileRequests)), (istreambuf_iterator<char>()));
+        textRequest = std::string ((istreambuf_iterator<char>(jsonFileRequests)), (istreambuf_iterator<char>()));
         jsonFileRequests.close();
     }
     else
@@ -356,7 +356,7 @@ bool SearchServer::checkHash(bool resetHash) const {
     return check;
 }
 
-void SearchServer::addToLog(const string &s) const {
+void search_server::SearchServer::addToLog(const string &s) const {
     /**
     Функция для записи информации работе сервера в лог-файл*/
 
@@ -370,7 +370,7 @@ void SearchServer::addToLog(const string &s) const {
     logFile.close();
 }
 
-SearchServer::~SearchServer() {
+search_server::SearchServer::~SearchServer() {
     /**
     Деструктор класса*/
     delete  index;
@@ -379,19 +379,20 @@ SearchServer::~SearchServer() {
     delete  asioServer;
 }
 
-void SearchServer::showSettings() const {
+void search_server::SearchServer::showSettings() const {
     /**
     Для отображения текущих настроек сервера*/
     settings.show();
 }
 
-size_t SearchServer::getTimeOfUpdate() const {
+size_t search_server::SearchServer::getTimeOfUpdate() const {
     /**
     Для получения длительности последнего обновления базы индексов*/
     return time;
 }
 
-SearchServer::RelativeIndex::RelativeIndex(size_t _fileInd, const set<basicString> &request, const InvertedIndex* index, bool exactSearch) : fileInd(_fileInd)
+search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& _request, const inverted_index::InvertedIndex* _index, bool _exactSearch)
+
 {
     /**
     Т.к. сервер может работать в двух режимах: точного поиска и обычного, для которого не обязательно все слова из запроса
@@ -401,25 +402,26 @@ SearchServer::RelativeIndex::RelativeIndex(size_t _fileInd, const set<basicStrin
      @param sum статическое поле класса, хранит максимальную абсолютную релевантность файла-результата, используется для
      вычисления относительной релевантности.
      */
+    filePath = _index->docPaths.at(_fileInd);
 
-    auto checkWordAndFileInd =[index,this] (const auto& word) {
-        return (index->freqDictionary.find(word) != index->freqDictionary.end() &&
-                index->freqDictionary.find(word)->second.find(fileInd) != index->freqDictionary.find(word)->second.end());
+    auto checkWordAndFileInd =[_index,_fileInd] (const auto& word) {
+        return (_index->freqDictionary.find(word) != _index->freqDictionary.end() &&
+                _index->freqDictionary.find(word)->second.find(_fileInd) != _index->freqDictionary.find(word)->second.end());
     };
 
-    filePath = index->docPaths.at(fileInd);
 
-    for(const auto& word:request)
+
+    for(const auto& word:_request)
     {
-        if(exactSearch || checkWordAndFileInd(word))
-         sum += index->freqDictionary.at(word).at(fileInd);
+        if(_exactSearch || checkWordAndFileInd(word))
+         sum += _index->freqDictionary.at(word).at(_fileInd);
     }
 
     if(sum > max)
         max = sum;
 }
 
-void SearchServer::myExp::show() const {
+void search_server::SearchServer::myExp::show() const {
     /**
     Сообщения о возможных ошибках в настройках сервера*/
     if(codeExp == ErrorCodes::NAME)
@@ -430,5 +432,43 @@ void SearchServer::myExp::show() const {
         cout << "Server: directory '" << dir << "' is not exist!" << endl;
     if(codeExp == ErrorCodes::NOTFILESTOINDEX)
         cout << "Server: no files to index!" << endl;
+
+}
+
+void search_server::Settings::show() const
+{
+    std::cout << "--- Server information ---" << std::endl;
+    std::cout << std::endl << "Name:\t\t\t\t" << name << std::endl;
+    std::cout << "Version:\t\t\t" << version << std::endl;
+    std::cout << "Number of maximum responses:\t" << maxResponse << std::endl;
+    if(!dir.empty())
+        std::cout << "The directory for indexing:\t" << dir << std::endl;
+    std::cout << "Thread count:\t\t\t";
+    if(threadCount)
+        std::cout << threadCount << std::endl;
+    else
+        std::cout << std::thread::hardware_concurrency() << std::endl;
+    std::cout << "Index database update period:\t" << indTime << " seconds" << std::endl;
+    std::cout << "Show request as text:\t\t" << std::boolalpha << requestText << std::endl;
+    std::cout << "Use exact search:\t\t" << std::boolalpha << exactSearch << std::endl << std::endl;
+}
+
+search_server::Settings::Settings() {
+
+    name = "TestServer";
+    version = "1.1";
+    dir = "";
+    threadCount = 1;
+    maxResponse = 5;
+    exactSearch = false;
+
+}
+
+search_server::Settings *search_server::Settings::getSettings() {
+
+    if(!settings)
+        settings = new Settings();
+
+    return settings;
 
 }

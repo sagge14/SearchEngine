@@ -3,8 +3,9 @@
 //
 
 #include "ConverterJSON.h"
+#include "SearchServer.h"
 
-void ConverterJSON::setSettings(const Settings &val) {
+void ConverterJSON::setSettings(const search_server::Settings &val) {
     /**
     Функция записи настроек сервера в json файл. */
 
@@ -26,11 +27,11 @@ void ConverterJSON::setSettings(const Settings &val) {
 
 }
 
-Settings ConverterJSON::getSettings(const std::string& jsonPath) {
+search_server::Settings ConverterJSON::getSettings(const std::string& jsonPath) {
     /**
     Функция получения настроек сервера из json файла. */
 
-    Settings s;
+    search_server::Settings s;
     nh::json jsonSettings;
     std::ifstream jsonFileSettings(jsonPath);
 

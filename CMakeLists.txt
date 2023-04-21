@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 project(SearchEngine)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_STANDARD 17)
-set(Boost_INCLUDE_DIR C:/boost_1_81_0/)
-set(Boost_LIBRARY_DIR C:/boost_1_81_0/stage/lib)
+set(Boost_INCLUDE_DIR C:/boost_1_82_0/)
+set(Boost_LIBRARY_DIR C:/boost_1_82_0/libs)
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 
 include_directories(${Boost_INCLUDE_DIR})
@@ -29,7 +28,7 @@ enable_testing()
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-add_executable(SearchEngine main.cpp ${all_SRCS} src/AsioServer.cpp src/AsioServer.h src/TreadPool.cpp src/TreadPool.h)
+add_executable(SearchEngine main.cpp ${all_SRCS})
 
 project(SearchEngine_test)
 
@@ -39,7 +38,11 @@ target_link_libraries(SearchEngine PUBLIC nlohmann_json::nlohmann_json ${Boost_L
 
 target_link_libraries(SearchEngine_test PRIVATE gtest gtest_main nlohmann_json::nlohmann_json)
 
+option(TEST_MODE "option for debug" OFF)
 
+if (TEST_MODE)
+    add_definitions(-DTEST_MODE)
+endif(TEST_MODE)
 
 gtest_discover_tests(SearchEngine_test)
 

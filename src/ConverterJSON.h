@@ -8,8 +8,12 @@
 #include <list>
 #include <iostream>
 #include "nlohmann/json.hpp"
-#include "Settings.h"
 #include <exception>
+
+namespace search_server
+{
+    class Settings;
+}
 
 namespace nh = nlohmann;
 typedef std::list<std::pair<std::string, float>> listAnswer;
@@ -34,8 +38,8 @@ public:
     };
 
     ConverterJSON() = default;
-    static void setSettings(const Settings& val);
-    static Settings getSettings(const std::string& jsonPath = "Settings.json");
+    static void setSettings(const search_server::Settings& val);
+    static search_server::Settings getSettings(const std::string& jsonPath = "Settings.json");
     static std::vector<std::string> getRequests(const std::string& jsonPath = "Requests.json");
     static std::vector<std::string> getRequestsFromString(const std::string& jsonString);
     static std::string putAnswers(const listAnswers& answers, const std::string& jsonPath = "Answers.json");
