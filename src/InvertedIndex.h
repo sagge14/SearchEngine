@@ -22,91 +22,27 @@ namespace search_server
 namespace inverted_index {
 
     using namespace std;
+
     typedef unordered_map<size_t, size_t> mapEntry;
-    typedef map<size_t, vector<unordered_map<string,mapEntry>::iterator>> wordIts;
-
-    template <typename TP>
-    std::time_t to_time_t(TP tp)
-    {
-        return chrono::system_clock::to_time_t(chrono::file_clock::to_sys(tp));
-    }
+    typedef map<size_t, vector<unordered_map<string,mapEntry>::iterator>> mapDictionaryIterators;
 
 
-    class MyHashFunction {
 
+
+    class hashFunction {
+        std::time_t toTime_t(filesystem::file_time_type tp) const
+        {
+            return chrono::system_clock::to_time_t(chrono::file_clock::to_sys(tp));
+        }
     public:
         size_t operator()(const pair<size_t, filesystem::file_time_type>& p) const
         {
             return (p.first) ^
-                   (hash<time_t>()(to_time_t(p.second)));
+                   (hash<time_t>()(toTime_t(p.second)));
         }
     };
 
-    typedef unordered_set<pair<size_t, filesystem::file_time_type>, MyHashFunction> setFiles;
-
-    class DocPaths {
-
-    public:
-        unordered_map<size_t,string> docPaths;
-        setFiles docPaths2;
-
-    public:
-        string at(size_t n) const {
-            return docPaths.at(n);
-        }
-
-        size_t size() const {
-            return docPaths.size();
-        }
-        void updateSet()
-        {
-            docPaths2.clear();
-            for(const auto& i:docPaths)
-                if(filesystem::exists(i.second) && filesystem::is_regular_file(i.second))
-                {
-                    try {
-                        docPaths2.insert(make_pair(i.first, filesystem::last_write_time(i.second)));
-                    }
-                    catch(...){}
-                }
-        }
-
-        auto getForAdd(const vector<string>& vecDoc)
-        {
-
-           auto myCopy = [](const setFiles& first, const setFiles& second, setFiles& result)
-           {
-               copy_if(first.begin(),first.end(),std::inserter(result, result.end()),[&second]
-                       (const auto& item){return !second.contains(item);});
-           };
-
-            setFiles newFiles,add,chg;
-
-            for(const auto& i:vecDoc)
-            {
-                try{newFiles.insert(make_pair(std::hash<string>()(i), filesystem::last_write_time(i)));}
-                catch(...){cout << "Ошибка тут NewFiles" << endl;}
-            }
-
-            auto t1 = chrono::high_resolution_clock::now();
-
-            thread tAdd([&]() { myCopy(newFiles, this->docPaths2, add); });
-            thread tDel([&]() { myCopy(this->docPaths2, newFiles, chg); });
-            tAdd.join();
-            tDel.join();
-
-            auto t2 = chrono::high_resolution_clock::now();
-
-
-            cout << std::chrono::duration_cast<chrono::microseconds>(t2-t1).count() << " sets " << endl;
-            cout << "chg " << chg.size() << endl;
-            cout << "add " << add.size() << endl;
-
-           return std::move(make_tuple(add,chg));
-        }
-
-        DocPaths() = default;
-    };
+    typedef unordered_set<pair<size_t, filesystem::file_time_type>, hashFunction> setLastWriteTimeFiles;
 
     template<typename Time = chrono::seconds, typename Clock = chrono::high_resolution_clock>
     struct perf_timer {
@@ -122,14 +58,71 @@ namespace inverted_index {
         }
     };
 
+    class DocPaths {
+
+    public:
+        unordered_map<size_t,string> docPaths;
+        setLastWriteTimeFiles docPaths2;
+
+    public:
+        string at(size_t n) const {
+            return docPaths.at(n);
+        }
+
+        size_t size() const {
+            return docPaths.size();
+        }
+
+        auto getForAdd(const vector<string>& vecDoc)
+        {
+           setLastWriteTimeFiles newFiles,del,ind;
+
+           auto myCopy = [](const setLastWriteTimeFiles& first,
+                            const setLastWriteTimeFiles& second, setLastWriteTimeFiles& result)
+           {
+               copy_if(first.begin(),first.end(),std::inserter(result, result.end()),[&second]
+                       (const auto& item){return !second.contains(item);});
+           };
+
+            for(const auto& path:vecDoc)
+            {
+                size_t pathHash = std::hash<string>()(path);
+                try {
+                    newFiles.insert(make_pair(pathHash, filesystem::last_write_time(path)));
+                    docPaths[pathHash] = path;
+                }
+                catch(...){}
+            }
+
+            auto t1 = chrono::high_resolution_clock::now();
+
+            thread tInd([&]() { myCopy(newFiles, docPaths2, ind); });
+            thread tDel([&]() { myCopy(docPaths2, newFiles, del); });
+            tInd.join();
+            tDel.join();
+
+            auto t2 = chrono::high_resolution_clock::now();
+
+            cout << std::chrono::duration_cast<chrono::microseconds>(t2-t1).count() << " sets " << endl;
+            cout << "ind " << ind.size() << endl;
+            cout << "del " << del.size() << endl;
+
+            docPaths2 = std::move(newFiles);
+
+           return std::move(make_tuple(ind, del));
+        }
+
+        DocPaths() = default;
+    };
+
     class InvertedIndex {
 
-        /** @param work для проверки выполнения в текущий момент времени переиндексации базы @param freqDictionary.
+        /** @param work для проверки выполнения в текущий момент времени переиндексации базы 'freqDictionary'.
             @param freqDictionary база индексов.
             @param docPaths пути индексируемых файлов.
-            @param mapMutex мьютекс для разделенного доступа потоков к базе индексов @param freqDictionary, во время
+            @param mapMutex мьютекс для разделенного доступа потоков к базе индексов 'freqDictionary', во время
             выполнения индексирования базы.*
-            @param logMutex мьютекс для разделения доступа между потоками к файлу @param logFile.
+            @param logMutex мьютекс для разделения доступа между потоками к файлу 'logFile'.
             @param logFile файл для хранения информации о работе сервера. */
 
         atomic<bool> work{};
@@ -138,18 +131,18 @@ namespace inverted_index {
         mutable mutex logMutex;
         mutable ofstream logFile;
         unordered_map<string, mapEntry> freqDictionary;
-        wordIts wordIts;
+        mapDictionaryIterators wordIts;
 
         friend class search_server::SearchServer;
         friend class search_server::RelativeIndex;
 
         /** @param fileIndexing функция индексирования одного файла.
-            @param allFilesIndexing функция индексирования всех файлов из  @param docPaths.
-            @param addToLog функция добавление в @param logFile инфрормации о работе сервера. */
+            @param allFilesIndexing функция индексирования всех файлов из docPaths.
+            @param addToLog функция добавление в 'logFile' инфрормации о работе сервера. */
 
         void fileIndexing(size_t _fileHash);
 
-        void allFilesIndexing(size_t threadCount = 0);
+        void allFilesIndexing(const setLastWriteTimeFiles& ind, size_t threadCount = 0);
 
         void addToLog(const string &_s) const;
 
@@ -157,20 +150,17 @@ namespace inverted_index {
 
         /** @param setDocPaths для установки путей файлов подлежащих индексации.
             @param updateDocumentBase функция процесс обновления базы индексов.
-            @param addToLog функция добавление в @param logFile инфрормации о работе сервера.
+            @param addToLog функция добавление в 'logFile' инфрормации о работе сервера.
             @param getWordCount функция возвращающая mapEntry - обьект типа map<size_t,size_t>
-            где first - это индекс файла, а second - количество сколько раз @param word
+            где first - это индекс файла, а second - количество сколько раз 'word'
             содержится в файле с индексом first - функция используется только для тестирования */
 
-        void setDocPaths(vector<string> _docPaths);
 
         void updateDocumentBase(const vector<string>& vecPaths, size_t threadCount = 0);
 
-        mapEntry getWordCount(const string &_s);
+        mapEntry getWordCount(const string& word);
 
         InvertedIndex() = default;
-
-        explicit InvertedIndex(const vector<string> &_docPaths);
 
         ~InvertedIndex() = default;
     };

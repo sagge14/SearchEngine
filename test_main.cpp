@@ -17,11 +17,11 @@ using namespace std;
 void TestInvertedIndexFunctionality(
         const vector<string>& docs,
         const vector<string>& requests,
-        const vector<inverted_index::mapEntry>& expected
-) {
+        const vector<inverted_index::mapEntry>& expected) {
+
     vector<inverted_index::mapEntry> result;
     inverted_index::InvertedIndex idx(docs);
-    idx.updateDocumentBase();
+    idx.updateDocumentBase(docs);
     for(const auto& request : requests) {
         inverted_index::mapEntry word_count = idx.getWordCount(request);
         result.push_back(word_count);
@@ -33,7 +33,7 @@ TEST(TestInvertedIndexFunctionality, TestBasic1) {
             "london is !the capital of  great britain",
             "big ben is the nickname for !the! Great bell the? of the striking clock"
     };
-    const vector<basicString> requests = {"london", "the"};
+    const vector<string> requests = {"london", "the"};
     const vector<inverted_index::mapEntry> expected = {
             {
                     {0, 1}
@@ -44,14 +44,14 @@ TEST(TestInvertedIndexFunctionality, TestBasic1) {
     TestInvertedIndexFunctionality(docs, requests, expected);
 }
 TEST(TestCaseInvertedIndex, TestBasic2) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "milk milk milk milk water water water",
             "milk water water",
             "milk milk milk milk milk water water water water water",
             "americano cappuccino"
     };
-    const vector<basicString> requests = {"milk", "water", "cappuccino"};
-    const vector<mapEntry> expected = {
+    const vector<string> requests = {"milk", "water", "cappuccino"};
+    const vector<inverted_index::mapEntry> expected = {
             {
                     {0, 4}, {1, 1}, {2, 5}
             }, {
@@ -63,12 +63,12 @@ TEST(TestCaseInvertedIndex, TestBasic2) {
     TestInvertedIndexFunctionality(docs, requests, expected);
 }
 TEST(TestCaseInvertedIndex, TestInvertedIndexMissingWord) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "a b c d e f g h i j k l",
             "statement"
     };
-    const vector<basicString> requests = {"m", "statement"};
-    const vector<mapEntry> expected = {
+    const vector<string> requests = {"m", "statement"};
+    const vector<inverted_index::mapEntry> expected = {
             {
             }, {
                     {1, 1}
@@ -77,7 +77,7 @@ TEST(TestCaseInvertedIndex, TestInvertedIndexMissingWord) {
     TestInvertedIndexFunctionality(docs, requests, expected);
 }
 TEST(TestCaseSearchServer, TestTop5) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "london is the capital of great britain",
             "paris is the capital of france",
             "berlin is the capital of germany",
@@ -111,12 +111,12 @@ TEST(TestCaseSearchServer, TestTop5) {
                     {"2", 0.666666687}
               }
     };
-    SearchServer srv(docs);
+    search_server::SearchServer srv(ConverterJSON::getSettings());
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
 TEST(TestCaseSearchServer, TestTop5_MissingWord) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "Moscow is my favorite city, also Moscow is the capital of Russia",
             "berlin is the capital of germany",
             "I was born in Moscow",
@@ -133,12 +133,12 @@ TEST(TestCaseSearchServer, TestTop5_MissingWord) {
                     {"4", 0.25},
                     {"2", 0.125}
     };
-    SearchServer srv(docs);
+    search_server::SearchServer srv(docs);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
 TEST(TestCaseSearchServer, TestTop5_Extact_Search) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "Moscow is my favorite city, also Moscow is the capital of Russia",
             "berlin is the capital of germany",
             "I was born in Moscow",
@@ -153,12 +153,12 @@ TEST(TestCaseSearchServer, TestTop5_Extact_Search) {
                     {"5", 0.75}
             }
     };
-    SearchServer srv(docs, true);
+    search_server::SearchServer srv(docs, true);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
 TEST(TestCaseSearchServer, TestTop5_Extact_Search_MissingWord) {
-    const vector<basicString> docs = {
+    const vector<string> docs = {
             "Moscow is my favorite city, also Moscow is the capital of Russia",
             "berlin is the capital of germany",
             "I was born in Moscow",
@@ -170,7 +170,7 @@ TEST(TestCaseSearchServer, TestTop5_Extact_Search_MissingWord) {
 
     const listAnswer expected = {};
 
-    SearchServer srv(docs, true);
+    search_server::SearchServer srv(docs, true);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }

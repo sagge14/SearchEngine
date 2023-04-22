@@ -203,8 +203,8 @@ namespace search_server {
         explicit SearchServer(const vector<string>& _docPaths, bool exactSearch = false)
         {
         settings.exactSearch = exactSearch;
-        index = new InvertedIndex(_docPaths);
-        index->updateDocumentBase();
+        index = new inverted_index::InvertedIndex(_docPaths);
+        index->updateDocumentBase(_docPaths);
         }
         #endif
 

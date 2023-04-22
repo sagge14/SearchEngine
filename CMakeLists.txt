@@ -36,7 +36,7 @@ add_executable(SearchEngine_test test_main.cpp ${all_SRCS})
 
 target_link_libraries(SearchEngine PUBLIC nlohmann_json::nlohmann_json ${Boost_LIBRARIES} ws2_32 wsock32)
 
-target_link_libraries(SearchEngine_test PRIVATE gtest gtest_main nlohmann_json::nlohmann_json)
+target_link_libraries(SearchEngine_test PRIVATE gtest gtest_main nlohmann_json::nlohmann_json ${Boost_LIBRARIES} ws2_32 wsock32)
 
 option(TEST_MODE "option for debug" OFF)
 

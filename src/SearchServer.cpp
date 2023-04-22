@@ -259,9 +259,9 @@ search_server::SearchServer::SearchServer(Settings&& _settings) :  time{}, index
     addToLog("Server " + settings.name + " version " + settings.version + " is running!");
 
     if(settings.dir.empty())
-        index = new inverted_index::InvertedIndex(settings.files);
+        index = new inverted_index::InvertedIndex();
     else
-        index = new inverted_index::InvertedIndex(getAllFilesFromDir(settings.dir));
+        index = new inverted_index::InvertedIndex();
 
     auto periodicUpdate = [this]()
     {

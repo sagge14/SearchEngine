@@ -18,15 +18,13 @@ void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& vec
      во время выполнения переиндексирования устанавливаем  @param work = true. */
     work = true;
 
-    setDocPaths(vecPaths);
+    setLastWriteTimeFiles ind,del;
 
-    setFiles add,chg;
-
-    std::tie(add,chg) = docPaths.getForAdd(vecPaths);
+    std::tie(ind, del) = docPaths.getForAdd(vecPaths);
 
     auto t1 = chrono::high_resolution_clock::now();
 
-    for(const auto& f:chg)
+    for(const auto& f:del)
     {
         for(auto& i:wordIts[f.first])
         {
@@ -41,28 +39,19 @@ void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& vec
 
     cout << std::chrono::duration_cast<chrono::milliseconds>(t2-t1).count() << " dicto " << endl;
 
-    t1 = chrono::high_resolution_clock::now();
-    docPaths.updateSet();
-    t2 = chrono::high_resolution_clock::now();
+    for(const auto i:del)
+        if(docPaths.docPaths.contains(i.first))
+            ind.insert(i);
 
-    cout << std::chrono::duration_cast<chrono::milliseconds>(t2-t1).count() << " updateSetsWriteTime " << endl;
 
-    auto bufDoc = std::move(docPaths.docPaths);
+    allFilesIndexing(ind,_threadCount);
 
-    for(const auto i:chg)
-        if(bufDoc.contains(i.first))
-            docPaths.docPaths.insert(make_pair(i.first,bufDoc[i.first]));
-    for(const auto i:add)
-        docPaths.docPaths.insert(make_pair(i.first,bufDoc[i.first]));
-
-    allFilesIndexing(_threadCount);
-    docPaths.docPaths = std::move(bufDoc);
     cout << "dic size " << freqDictionary.size() << endl;
 
      work = false;
 }
 
-void inverted_index::InvertedIndex::allFilesIndexing(size_t _threadCount) {
+void inverted_index::InvertedIndex::allFilesIndexing(const setLastWriteTimeFiles& _ind, size_t _threadCount) {
 /** Индексирование файлов осуществляется в пуле потоков, количество потоков в пуле опеределяется
  * @param _threadCount. - если параметр пуст то выбирается по количеству ядер процессора,
  * если параметр больше количества файлов, то приравнивается количеству файлов. */
@@ -77,7 +66,7 @@ void inverted_index::InvertedIndex::allFilesIndexing(size_t _threadCount) {
 
     thread_pool pool(threadCount);
 
-    for(auto i:docPaths.docPaths)
+    for(auto i:_ind)
         pool.add_task(oneInd,i.first);
 
     pool.wait_all();
@@ -106,7 +95,7 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
     #endif
 
     #ifdef TEST_MODE
-    string text(docPaths.at(_fileInd));
+    string text(docPaths.at(_fileHash));
     #endif
 
     map<string, size_t> freqWordFile;
@@ -140,13 +129,6 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
         }
 }
 
-inverted_index::InvertedIndex::InvertedIndex(const vector<string>& _docPaths) :InvertedIndex() {
-    /**
-    Установка путей файлов подлежащих индексации*/
-
-    setDocPaths(_docPaths);
-}
-
 void inverted_index::InvertedIndex::addToLog(const string& _s) const {
 
     /**
@@ -173,12 +155,5 @@ inverted_index::mapEntry inverted_index::InvertedIndex::getWordCount(const strin
         return freqDictionary.at(_s);
     else
         return mapEntry {};
-
-}
-
-void inverted_index::InvertedIndex::setDocPaths(std::vector<std::string> _docPaths) {
-
-    for(const auto& i:_docPaths)
-        docPaths.docPaths[hash<string>()(i)] = i;
 
 }
