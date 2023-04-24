@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "TreadPool.h"
+#include "ThreadPool.h"
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
@@ -23,11 +23,10 @@ namespace inverted_index {
 
     using namespace std;
 
+    class hashFunction;
     typedef unordered_map<size_t, size_t> mapEntry;
     typedef map<size_t, vector<unordered_map<string,mapEntry>::iterator>> mapDictionaryIterators;
-
-
-
+    typedef unordered_set<pair<size_t, filesystem::file_time_type>, hashFunction> setLastWriteTimeFiles;
 
     class hashFunction {
         std::time_t toTime_t(filesystem::file_time_type tp) const
@@ -37,16 +36,13 @@ namespace inverted_index {
     public:
         size_t operator()(const pair<size_t, filesystem::file_time_type>& p) const
         {
-            return (p.first) ^
-                   (hash<time_t>()(toTime_t(p.second)));
+            return p.first ^ hash<time_t>()(toTime_t(p.second));
         }
     };
 
-    typedef unordered_set<pair<size_t, filesystem::file_time_type>, hashFunction> setLastWriteTimeFiles;
-
     template<typename Time = chrono::seconds, typename Clock = chrono::high_resolution_clock>
     struct perf_timer {
-        /** Стркуктура повзволяющая получить время выполнения любой функции.
+        /** @param perf_timer Стркуктура повзволяющая получить время выполнения любой функции.
          * Взято из книги "Решение задач на современном C++" Мариуса Бансила.
          * */
         template<typename F, typename... Args>
@@ -61,56 +57,13 @@ namespace inverted_index {
     class DocPaths {
 
     public:
-        unordered_map<size_t,string> docPaths;
+        unordered_map<size_t,string> mapHashDocPaths;
         setLastWriteTimeFiles docPaths2;
 
     public:
-        string at(size_t n) const {
-            return docPaths.at(n);
-        }
-
-        size_t size() const {
-            return docPaths.size();
-        }
-
-        auto getForAdd(const vector<string>& vecDoc)
-        {
-           setLastWriteTimeFiles newFiles,del,ind;
-
-           auto myCopy = [](const setLastWriteTimeFiles& first,
-                            const setLastWriteTimeFiles& second, setLastWriteTimeFiles& result)
-           {
-               copy_if(first.begin(),first.end(),std::inserter(result, result.end()),[&second]
-                       (const auto& item){return !second.contains(item);});
-           };
-
-            for(const auto& path:vecDoc)
-            {
-                size_t pathHash = std::hash<string>()(path);
-                try {
-                    newFiles.insert(make_pair(pathHash, filesystem::last_write_time(path)));
-                    docPaths[pathHash] = path;
-                }
-                catch(...){}
-            }
-
-            auto t1 = chrono::high_resolution_clock::now();
-
-            thread tInd([&]() { myCopy(newFiles, docPaths2, ind); });
-            thread tDel([&]() { myCopy(docPaths2, newFiles, del); });
-            tInd.join();
-            tDel.join();
-
-            auto t2 = chrono::high_resolution_clock::now();
-
-            cout << std::chrono::duration_cast<chrono::microseconds>(t2-t1).count() << " sets " << endl;
-            cout << "ind " << ind.size() << endl;
-            cout << "del " << del.size() << endl;
-
-            docPaths2 = std::move(newFiles);
-
-           return std::move(make_tuple(ind, del));
-        }
+        string at(size_t hashFile) const;
+        size_t size() const;
+        tuple<setLastWriteTimeFiles, setLastWriteTimeFiles> getUpdate(const vector<string>& vecDoc);
 
         DocPaths() = default;
     };
@@ -137,14 +90,19 @@ namespace inverted_index {
         friend class search_server::RelativeIndex;
 
         /** @param fileIndexing функция индексирования одного файла.
-            @param allFilesIndexing функция индексирования всех файлов из docPaths.
+            @param allFilesIndexing функция индексирования всех файлов из mapHashDocPaths.
             @param addToLog функция добавление в 'logFile' инфрормации о работе сервера. */
 
         void fileIndexing(size_t _fileHash);
-
-        void allFilesIndexing(const setLastWriteTimeFiles& ind, size_t threadCount = 0);
-
+        void addToDictionary(const setLastWriteTimeFiles& ind, size_t threadCount = 0);
+        void delFromDictionary(const setLastWriteTimeFiles& del);
         void addToLog(const string &_s) const;
+
+        InvertedIndex(const InvertedIndex &) = delete;
+        InvertedIndex(InvertedIndex &&) = delete;
+        InvertedIndex& operator=(const InvertedIndex &) = delete;
+        InvertedIndex& operator=(InvertedIndex &&) = delete;
+        InvertedIndex() = default;
 
     public:
 
@@ -155,14 +113,9 @@ namespace inverted_index {
             где first - это индекс файла, а second - количество сколько раз 'word'
             содержится в файле с индексом first - функция используется только для тестирования */
 
-
         void updateDocumentBase(const vector<string>& vecPaths, size_t threadCount = 0);
-
         mapEntry getWordCount(const string& word);
-
-        InvertedIndex() = default;
-
-        ~InvertedIndex() = default;
+        static InvertedIndex& getInstance();
     };
 
 }

@@ -8,8 +8,7 @@
 
 typedef std::list<std::pair<std::string, float>> listAnswer;
 
-/** Перед запуском тестов необходимо в файле "Settings.h"
-  * установить #define TEST_MODE true
+/** Перед запуском тестов необходимо выбрать конфигурацию 'TEST'
   * */
 
 using namespace std;
@@ -19,11 +18,13 @@ void TestInvertedIndexFunctionality(
         const vector<string>& requests,
         const vector<inverted_index::mapEntry>& expected) {
 
+    using namespace inverted_index;
+
     vector<inverted_index::mapEntry> result;
-    inverted_index::InvertedIndex idx(docs);
-    idx.updateDocumentBase(docs);
+    InvertedIndex::getInstance().updateDocumentBase(docs);
+
     for(const auto& request : requests) {
-        inverted_index::mapEntry word_count = idx.getWordCount(request);
+        inverted_index::mapEntry word_count = InvertedIndex::getInstance().getWordCount(request);
         result.push_back(word_count);
     }
     ASSERT_EQ(result, expected);
@@ -111,7 +112,7 @@ TEST(TestCaseSearchServer, TestTop5) {
                     {"2", 0.666666687}
               }
     };
-    search_server::SearchServer srv(ConverterJSON::getSettings());
+    search_server::SearchServer srv(docs, false);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }
@@ -133,7 +134,7 @@ TEST(TestCaseSearchServer, TestTop5_MissingWord) {
                     {"4", 0.25},
                     {"2", 0.125}
     };
-    search_server::SearchServer srv(docs);
+    search_server::SearchServer srv(docs, false);
     listAnswer result = srv.getAnswer(request);
     ASSERT_EQ(result, expected);
 }

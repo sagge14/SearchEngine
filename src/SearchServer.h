@@ -4,9 +4,10 @@
 #pragma once
 #include "ConverterJSON.h"
 #include "InvertedIndex.h"
-#include "AsioServer.h"
 #include <set>
-#include <condition_variable>
+#ifndef TEST_MODE
+#include "AsioServer.h"
+#endif
 
 namespace search_server {
 
@@ -19,9 +20,9 @@ namespace search_server {
         NAME,
         THREADCOUNT,
         WRONGDIRRECTORY,
-        NOTFILESTOINDEX
+        NOTFILESTOINDEX,
+        ASIOPORT
     };
-
     struct Word {
         /** @param count количество документов в которых втречается слово @param word*
             @param word слово из поискового запроса*
@@ -38,7 +39,6 @@ namespace search_server {
 
         ~Word() = default;
     };
-
     struct RelativeIndex {
         /** @param max максимальная абсолютная релевантность.*
             @param sum текущая абсолютная релевантность.*
@@ -47,21 +47,14 @@ namespace search_server {
 
         inline static size_t max{0};
         size_t sum{0};
-       // size_t fileInd{0};
-        string filePath;
+        size_t fileInd{0};
 
         float getRelativeIndex() const { return (float) sum / (float) max; }
-
         bool operator==(const RelativeIndex &other) const { return (sum == other.sum);}
-
         bool operator<(const RelativeIndex &r) const { return sum > r.sum;}
 
-        RelativeIndex(size_t fileInd, const set <string> &_request, const inverted_index::InvertedIndex *_index,
-                      bool _exactSearch = false);
-
-        ~RelativeIndex() = default;
+        RelativeIndex(size_t fileInd, const set <string> &_request, bool _exactSearch = false);
     };
-
     class Settings
     {
         /** @param name имя сервера.
@@ -75,7 +68,11 @@ namespace search_server {
           * @param maxResponse устанавливает максимальное количество ответов на запрос.*
           * @param requestText для отображения в файле ответов вместо идентификаторов запросов текста запросов */
 
-        inline static Settings* settings = nullptr;
+        Settings(const Settings &) = delete;
+        Settings(Settings &&) = delete;
+        Settings& operator=(const Settings &) = delete;
+        Settings& operator=(Settings &&) = delete;
+        Settings();
 
     public:
 
@@ -87,18 +84,13 @@ namespace search_server {
         size_t indTime{};
         int maxResponse{};
         bool requestText{};
+        int asioPort = 15001;
         std::vector<std::string> files;
 
-        static Settings* getSettings();
+        static Settings& getInstance();
 
         void show() const;
-
-        Settings& operator=(const Settings& s) = default;
-        Settings(const Settings& s) = default;
-
-        Settings();
     };
-
     class SearchServer {
 
         /** @param work для проверки выполнения в текущий момент времени запроса.*
@@ -115,23 +107,24 @@ namespace search_server {
             @param RelativeIndex структура для хранения информации о файле удовлетворяющем поисковому запросу*/
 
         mutable atomic<bool> work{};
-        hash<string> hashRequest;
-        inverted_index::InvertedIndex *index{};
-        Settings settings{};
         size_t time{};
-        thread *threadUpdate{};
-        thread *threadAsio{};
-        mutable ofstream logFile;
-        mutable mutex logMutex;
+
+
+        std::unique_ptr<thread> threadUpdate;
+        std::unique_ptr<thread> threadAsio;
+
+        #ifndef TEST_MODE
+        std::unique_ptr<asio_server::AsioServer> asioServer;
         boost::asio::io_context io_context;
-        asio_server::AsioServer *asioServer;
-
-
         friend class asio_server::session;
+        #endif
+
 
         mutable std::condition_variable cv;
         mutable mutex updateM;
         mutable mutex searchM;
+        mutable ofstream logFile;
+        mutable mutex logMutex;
 
         /** @param trustSettings функция проверки корректности настроек сервера.*
             @param checkHash функция для сравнения хэша последнего и очередного запроса.*
@@ -142,17 +135,18 @@ namespace search_server {
             @param addToLog функция добавление в @param logFile инфрормации о работе сервера.*/
 
         void trustSettings() const;
-
-        bool checkHash(bool resetHash = false) const;
-
         setFileInd intersectionSetFiles(const std::set<string> &request) const;
-
         static std::set<string> getUniqWords(string &text);
-
         static vector<string> getAllFilesFromDir(const basic_string<char> &dir);
-
         void addToLog(const string &s) const;
 
+        SearchServer(const SearchServer &) = delete;
+        SearchServer(SearchServer &&) = delete;
+        SearchServer& operator=(const SearchServer &) = delete;
+        SearchServer& operator=(SearchServer &&) = delete;
+        #ifndef TEST_MODE
+        explicit SearchServer();
+        #endif
 
 
     public:
@@ -172,44 +166,30 @@ namespace search_server {
         public:
 
             void show() const;
-
             explicit myExp(ErrorCodes _codeExp) : codeExp(_codeExp) {};
-
             explicit myExp(string _s) : codeExp(ErrorCodes::WRONGDIRRECTORY), dir(std::move(_s)) {};
-
             myExp() = default;
         };
 
         listAnswer getAnswer(string &request) const;
-
         listAnswers getAllAnswers(vector<string> requests) const;
-
         size_t getTimeOfUpdate() const;
-
         void updateDocumentBase();
-
         void showSettings() const;
 
-        explicit SearchServer(Settings &&settings);
-
-        explicit SearchServer() = default;
-
-        ~SearchServer();
-
-        /**
-        Упращенная версия конструктора @param SearchServer для тестирования некоторых функций.*/
+        static SearchServer& getInstance();
 
         #ifdef TEST_MODE
         explicit SearchServer(const vector<string>& _docPaths, bool exactSearch = false)
         {
-        settings.exactSearch = exactSearch;
-        index = new inverted_index::InvertedIndex(_docPaths);
-        index->updateDocumentBase(_docPaths);
+            /**
+            Упрощенная версия конструктора @param SearchServer для тестирования.*/
+
+            Settings::getInstance().exactSearch = exactSearch;
+            inverted_index::InvertedIndex::getInstance().updateDocumentBase(_docPaths);
         }
         #endif
-
     };
-
 }
 
 

@@ -14,6 +14,7 @@ void ConverterJSON::setSettings(const search_server::Settings &val) {
     jsonSettings["config"]["Name"] = val.name;
     jsonSettings["config"]["Version"] = val.version;
     jsonSettings["config"]["max_response"] = val.maxResponse;
+    jsonSettings["config"]["asio_port"] = val.asioPort;
     jsonSettings["config"]["thread_count"] = val.threadCount;
     jsonSettings["config"]["dir"] = val.dir;
     jsonSettings["config"]["ind_time"] = val.indTime;
@@ -27,11 +28,11 @@ void ConverterJSON::setSettings(const search_server::Settings &val) {
 
 }
 
-search_server::Settings ConverterJSON::getSettings(const std::string& jsonPath) {
+void ConverterJSON::getSettings(const std::string& jsonPath) {
     /**
     Функция получения настроек сервера из json файла. */
 
-    search_server::Settings s;
+    using namespace search_server;
     nh::json jsonSettings;
     std::ifstream jsonFileSettings(jsonPath);
 
@@ -40,15 +41,16 @@ search_server::Settings ConverterJSON::getSettings(const std::string& jsonPath) 
         jsonSettings = nh::json::parse(jsonFileSettings);
         jsonFileSettings.close();
 
-        jsonSettings.at("config").at("Name").get_to(s.name);
-        jsonSettings.at("config").at("Version").get_to(s.version);
-        jsonSettings.at("config").at("max_response").get_to(s.maxResponse);
-        jsonSettings.at("config").at("thread_count").get_to(s.threadCount);
-        jsonSettings.at("config").at("dir").get_to(s.dir);
-        jsonSettings.at("config").at("exact_search").get_to(s.exactSearch);
-        jsonSettings.at("config").at("ind_time").get_to(s.indTime);
-        jsonSettings.at("config").at("text_request").get_to(s.requestText);
-        jsonSettings.at("Files").get_to(s.files);
+        jsonSettings.at("config").at("Name").get_to(Settings::getInstance().name);
+        jsonSettings.at("config").at("Version").get_to(Settings::getInstance().version);
+        jsonSettings.at("config").at("max_response").get_to(Settings::getInstance().maxResponse);
+        jsonSettings.at("config").at("thread_count").get_to(Settings::getInstance().threadCount);
+        jsonSettings.at("config").at("dir").get_to(Settings::getInstance().dir);
+        jsonSettings.at("config").at("exact_search").get_to(Settings::getInstance().exactSearch);
+        jsonSettings.at("config").at("ind_time").get_to(Settings::getInstance().indTime);
+        jsonSettings.at("config").at("text_request").get_to(Settings::getInstance().requestText);
+        jsonSettings.at("config").at("asio_port").get_to(Settings::getInstance().asioPort);
+        jsonSettings.at("Files").get_to(Settings::getInstance().files);
     }
     catch (nh::json::parse_error& ex)
     {
@@ -59,8 +61,6 @@ search_server::Settings ConverterJSON::getSettings(const std::string& jsonPath) 
     {
         throw myExp(jsonPath);
     }
-
-    return s;
 }
 
 std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath) {
@@ -116,7 +116,7 @@ std::string ConverterJSON::putAnswers(const listAnswers& answers, const std::str
     jsonFileSettings << std::setw(2) << jsonAnswers;
     std::string ss = nh::to_string(jsonAnswers);
     jsonFileSettings.close();
-    return move(ss);
+    return std::move(ss);
 }
 
 std::vector<std::string> ConverterJSON::getRequestsFromString(const std::string &jsonString) {

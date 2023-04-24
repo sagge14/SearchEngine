@@ -6,7 +6,8 @@ int main() {
     using namespace std;
     try
     {
-        search_server::SearchServer myServer(ConverterJSON::getSettings());
+        using namespace search_server;
+        SearchServer::getInstance();
 
         string command;
 
@@ -32,7 +33,7 @@ int main() {
                 std::cout << "Enter request:";
                 std::getline(std::cin, request);
 
-                list<pair<string, float>> results = myServer.getAnswer(request);
+                list<pair<string, float>> results = SearchServer::getInstance().getAnswer(request);
 
                 std::cout << "--- Result: " << results.size() << " ---" << endl;
 
@@ -42,7 +43,7 @@ int main() {
                 std::cout << "---End---" << endl;
             }
             else if(command == "2")
-                myServer.showSettings();
+                SearchServer::getInstance().showSettings();
             else if(command == "3")
                 break;
             else

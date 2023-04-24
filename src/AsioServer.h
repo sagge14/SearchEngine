@@ -45,19 +45,17 @@ namespace asio_server
     public:
 
         void start();
-        search_server::SearchServer* searchServer_;
-        session(tcp::socket socket, search_server::SearchServer* searchServer) : socket_(std::move(socket)), searchServer_{searchServer}{};
+        session(tcp::socket socket) : socket_(std::move(socket)){};
 
     };
 
     class AsioServer
     {
     public:
-        AsioServer(boost::asio::io_context& io_context, short port, search_server::SearchServer* searchServer);
+        AsioServer(boost::asio::io_context& io_context, short port);
 
     private:
         void do_accept();
-        search_server::SearchServer* searchServer_;
         tcp::acceptor acceptor_;
     };
 }

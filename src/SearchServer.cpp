@@ -58,29 +58,29 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
      *  Просто находим все документы содержащие хотябы одно слово из запроса, обьединяем их в множество
      *  @param setFileInd @param result возвращаем результат :)
      **/
-
+    using namespace inverted_index;
     if(request.empty())
         return {};
 
     setFileInd result, first;
     list<Word> wordList;
 
-    auto getSetFromMap = [this](const std::string& word) {
+    auto getSetFromMap = [](const std::string& word) {
         setFileInd s;
-        for(const auto& z:index->freqDictionary.at(word))
+        for(const auto& z:InvertedIndex::getInstance().freqDictionary.at(word))
             s.insert(z.first);
         return s;
     };
 
     for(const auto& word:request)
-        if(index->freqDictionary.find(word) != index->freqDictionary.end())
-            wordList.emplace_back(word, index->freqDictionary.at(word).size());
-        else if (!settings.exactSearch)
+        if(InvertedIndex::getInstance().freqDictionary.find(word) != InvertedIndex::getInstance().freqDictionary.end())
+            wordList.emplace_back(word, InvertedIndex::getInstance().freqDictionary.at(word).size());
+        else if (!Settings::getInstance().exactSearch)
             continue;
         else
             return {};
 
-    if(!settings.exactSearch)
+    if(!Settings::getInstance().exactSearch)
     {
         for(const auto& w: wordList)
         {
@@ -133,14 +133,12 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
      * или индекс в зависимости от настроек сервера) и относительной релевантности.
      * Размером списока ответов ограничен @param maxResponse.
      * */
-
+    using namespace inverted_index;
     work = true;
 
-    if(index->work)
+    if(InvertedIndex::getInstance().work)
         std::cout << "Update base is running, pls wait!!!" << endl;
     updateM.lock();
-
-    std::cout << "Request start !!!" << (std::thread::id) std::this_thread::get_id() << endl;
 
     set<std::string> request = getUniqWords(_request);
 
@@ -150,37 +148,32 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
     RelativeIndex::max = 0;
 
     for(const auto& fileInd: intersectionSetFiles(request))
-        Results.emplace_back(fileInd, request, index, settings.exactSearch);
-
-   // this_thread::sleep_for(std::chrono::seconds(5));
+        Results.emplace_back(fileInd, request, Settings::getInstance().exactSearch);
 
     Results.sort();
 
     int i = 0;
     for(const auto& r:Results)
     {
-        if(!settings.dir.empty())
-        //    out.emplace_back(to_string(r.fileInd),r.getRelativeIndex());
-       // else
-            out.emplace_back(r.filePath,r.getRelativeIndex());
+        if(Settings::getInstance().dir.empty())
+            out.emplace_back(to_string(r.fileInd),r.getRelativeIndex());
+        else
+            out.emplace_back(InvertedIndex::getInstance().docPaths.at(r.fileInd),r.getRelativeIndex());
 
         i++;
-        if(i == settings.maxResponse)
+        if(i == Settings::getInstance().maxResponse)
         {
             if(!updateM.try_lock())
                 updateM.unlock();
 
             work = false;
-            std::cout << "Request finish!!!" << endl;
             return out;
         }
-
     }
 
     updateM.unlock();
 
     work = false;
-    std::cout << "Request finish!!!" << endl;
     return out;
 }
 
@@ -214,7 +207,7 @@ listAnswers search_server::SearchServer::getAllAnswers(vector<string> requests) 
     int i = 1;
 
     for(auto& request: requests)
-        if(settings.requestText)
+        if(Settings::getInstance().requestText)
             out.push_back(make_pair(getAnswer(request), request));
         else
         {
@@ -230,13 +223,14 @@ void search_server::SearchServer::updateDocumentBase() {
     /**
     Запускаем обновление базы индексов, записываем в @param time сколько времени уйдет на индексацию. */
 
+    using namespace inverted_index;
     time = inverted_index::perf_timer<chrono::milliseconds>::duration([this]() {
-        this->index->updateDocumentBase(getAllFilesFromDir(settings.dir), settings.threadCount);
-        }).count();
+        InvertedIndex::getInstance().updateDocumentBase(getAllFilesFromDir(Settings::getInstance().dir),
+                                                        Settings::getInstance().threadCount);}).count();
 
 }
-
-search_server::SearchServer::SearchServer(Settings&& _settings) :  time{}, index()  {
+#ifndef TEST_MODE
+search_server::SearchServer::SearchServer() :  time{} {
     /**
      В конструкторе сервера импортируется настройки, потом они проверяются функцией @param trustSettings
      на корректность, в случае успеха запускаются 2 потока:
@@ -253,18 +247,9 @@ search_server::SearchServer::SearchServer(Settings&& _settings) :  time{}, index
      Информаци об работе сервера записывается в лог-файл.
      */
 
-    settings = (std::move(_settings));
-    trustSettings();
-
-    addToLog("Server " + settings.name + " version " + settings.version + " is running!");
-
-    if(settings.dir.empty())
-        index = new inverted_index::InvertedIndex();
-    else
-        index = new inverted_index::InvertedIndex();
-
     auto periodicUpdate = [this]()
     {
+        using namespace inverted_index;
         while(true)
         {
             if(work)
@@ -272,35 +257,32 @@ search_server::SearchServer::SearchServer(Settings&& _settings) :  time{}, index
 
             updateM.lock();
 
-            std::cout << "Index database update started!!!! " << (std::thread::id) std::this_thread::get_id() << endl;
-
-            addToLog("Index database update started!");
             this->updateDocumentBase();
             time = getTimeOfUpdate();
 
-            addToLog("Index database update completed! "+ to_string(index->docPaths.size()) + " files, "
-                    + to_string(index->freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
-                    + to_string(time) + " seconds.");
-
-            std::cout << "Index database update finish! " << time << endl;
+            addToLog("Index database update completed! "+ to_string(InvertedIndex::getInstance().docPaths.size()) + " files, "
+                     + to_string(InvertedIndex::getInstance().freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
+                     + to_string(time) + " milliseconds.");
 
             updateM.unlock();
 
-            this_thread::sleep_for(std::chrono::seconds(settings.indTime));
+            this_thread::sleep_for(std::chrono::seconds(Settings::getInstance().indTime));
         }
-
     };
 
-    threadUpdate = new thread(periodicUpdate);
+    ConverterJSON::getSettings();
+    trustSettings();
 
-    asioServer = new asio_server::AsioServer(io_context, std::atoi("15001"), this);
-    threadAsio = new thread([this](){io_context.run();});
+    addToLog("Server " + Settings::getInstance().name + " version " + Settings::getInstance().version + " is running!");
+
+    threadUpdate = std::make_unique<thread>(periodicUpdate);
+    asioServer = std::make_unique<asio_server::AsioServer>(io_context, Settings::getInstance().asioPort);
+    threadAsio = std::make_unique<thread>([this](){io_context.run();});
 
     threadUpdate->detach();
     threadAsio->detach();
-
 }
-
+#endif
 void search_server::SearchServer::trustSettings() const {
     /**
     Функция проверяет корректность настроек сервера:
@@ -310,50 +292,21 @@ void search_server::SearchServer::trustSettings() const {
         либо напрямую из файла настроек сервера (по умолчанию Settings.json).
     Если настройки не корректны выбрасывается соответствующее исключение. */
 
-    auto allFilesNotExist = [this](){
-        return all_of(settings.files.begin(),settings.files.end(), [](auto path) {
+    auto allFilesNotExist = [](){
+        return all_of(Settings::getInstance().files.begin(),Settings::getInstance().files.end(), [](auto path) {
                 return !filesystem::exists(filesystem::path(path));});
         };
 
-    if(settings.name.empty())
+    if(Settings::getInstance().name.empty())
         throw(myExp(ErrorCodes::NAME));
-    if(settings.threadCount < 0)
+    if(Settings::getInstance().threadCount < 0)
         throw(myExp(ErrorCodes::THREADCOUNT));
-    if(!settings.dir.empty() && !filesystem::exists(filesystem::path(settings.dir)))
-        throw(myExp(settings.dir));
-    if(settings.dir.empty() && (settings.files.empty() || allFilesNotExist()))
+    if(Settings::getInstance().asioPort > 65535 || Settings::getInstance().asioPort < 0)
+        throw(myExp(ErrorCodes::ASIOPORT));
+    if(!Settings::getInstance().dir.empty() && !filesystem::exists(filesystem::path(Settings::getInstance().dir)))
+        throw(myExp(Settings::getInstance().dir));
+    if(Settings::getInstance().dir.empty() && (Settings::getInstance().files.empty() || allFilesNotExist()))
         throw(myExp(ErrorCodes::NOTFILESTOINDEX));
-}
-
-bool search_server::SearchServer::checkHash(bool resetHash) const {
-    /**
-    Функция сравнения хешей очередного и последнего запроса*/
-
-    static size_t hash{0};
-    size_t newHash;
-
-    if(resetHash)
-    {
-        hash = 0;
-        return{};
-    }
-
-    string textRequest;
-    std::ifstream jsonFileRequests("Requests.json");
-
-    if(jsonFileRequests.is_open())
-    {
-        textRequest = std::string ((istreambuf_iterator<char>(jsonFileRequests)), (istreambuf_iterator<char>()));
-        jsonFileRequests.close();
-    }
-    else
-        return false;
-
-    newHash = hashRequest(textRequest);
-    auto check = newHash != hash;
-    hash = newHash;
-
-    return check;
 }
 
 void search_server::SearchServer::addToLog(const string &s) const {
@@ -370,19 +323,10 @@ void search_server::SearchServer::addToLog(const string &s) const {
     logFile.close();
 }
 
-search_server::SearchServer::~SearchServer() {
-    /**
-    Деструктор класса*/
-    delete  index;
-    delete  threadUpdate;
-    delete  threadAsio;
-    delete  asioServer;
-}
-
 void search_server::SearchServer::showSettings() const {
     /**
     Для отображения текущих настроек сервера*/
-    settings.show();
+    Settings::getInstance().show();
 }
 
 size_t search_server::SearchServer::getTimeOfUpdate() const {
@@ -390,9 +334,13 @@ size_t search_server::SearchServer::getTimeOfUpdate() const {
     Для получения длительности последнего обновления базы индексов*/
     return time;
 }
-
-search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& _request, const inverted_index::InvertedIndex* _index, bool _exactSearch)
-
+#ifndef TEST_MODE
+search_server::SearchServer& search_server::SearchServer::getInstance() {
+    static SearchServer instance;
+    return instance;
+}
+#endif
+search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& _request, bool _exactSearch)
 {
     /**
     Т.к. сервер может работать в двух режимах: точного поиска и обычного, для которого не обязательно все слова из запроса
@@ -402,19 +350,19 @@ search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& 
      @param sum статическое поле класса, хранит максимальную абсолютную релевантность файла-результата, используется для
      вычисления относительной релевантности.
      */
-    filePath = _index->docPaths.at(_fileInd);
 
-    auto checkWordAndFileInd =[_index,_fileInd] (const auto& word) {
-        return (_index->freqDictionary.find(word) != _index->freqDictionary.end() &&
-                _index->freqDictionary.find(word)->second.find(_fileInd) != _index->freqDictionary.find(word)->second.end());
+    using namespace inverted_index;
+    fileInd = _fileInd;
+
+    auto checkWordAndFileInd =[_fileInd] (const auto& word) {
+        return (InvertedIndex::getInstance().freqDictionary.find(word) != InvertedIndex::getInstance().freqDictionary.end() &&
+                InvertedIndex::getInstance().freqDictionary.find(word)->second.find(_fileInd) != InvertedIndex::getInstance().freqDictionary.find(word)->second.end());
     };
-
-
 
     for(const auto& word:_request)
     {
         if(_exactSearch || checkWordAndFileInd(word))
-         sum += _index->freqDictionary.at(word).at(_fileInd);
+         sum += InvertedIndex::getInstance().freqDictionary.at(word).at(_fileInd);
     }
 
     if(sum > max)
@@ -428,11 +376,12 @@ void search_server::SearchServer::myExp::show() const {
         cout << "Server: settings error!" << endl;
     if(codeExp == ErrorCodes::THREADCOUNT)
         cout << "Server: thread count error!" << endl;
+    if(codeExp == ErrorCodes::ASIOPORT)
+        cout << "Server: asio port error! Port must be > 0 and < 65 536" << endl;
     if(codeExp == ErrorCodes::WRONGDIRRECTORY)
         cout << "Server: directory '" << dir << "' is not exist!" << endl;
     if(codeExp == ErrorCodes::NOTFILESTOINDEX)
         cout << "Server: no files to index!" << endl;
-
 }
 
 void search_server::Settings::show() const
@@ -440,6 +389,7 @@ void search_server::Settings::show() const
     std::cout << "--- Server information ---" << std::endl;
     std::cout << std::endl << "Name:\t\t\t\t" << name << std::endl;
     std::cout << "Version:\t\t\t" << version << std::endl;
+    std::cout << "Asio port:\t\t\t" << asioPort << std::endl;
     std::cout << "Number of maximum responses:\t" << maxResponse << std::endl;
     if(!dir.empty())
         std::cout << "The directory for indexing:\t" << dir << std::endl;
@@ -461,14 +411,10 @@ search_server::Settings::Settings() {
     threadCount = 1;
     maxResponse = 5;
     exactSearch = false;
-
 }
 
-search_server::Settings *search_server::Settings::getSettings() {
+search_server::Settings& search_server::Settings::getInstance() {
 
-    if(!settings)
-        settings = new Settings();
-
-    return settings;
-
+    static Settings instance;
+    return instance;
 }
