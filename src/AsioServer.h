@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/asio.hpp>
+#include <iostream>
 
 namespace search_server
 {
@@ -46,13 +47,16 @@ namespace asio_server
 
         void start();
         session(tcp::socket socket) : socket_(std::move(socket)){};
-
     };
 
     class AsioServer
     {
     public:
         AsioServer(boost::asio::io_context& io_context, short port);
+        ~AsioServer()
+        {
+            std::cout << "error asio" << endl;
+        }
 
     private:
         void do_accept();

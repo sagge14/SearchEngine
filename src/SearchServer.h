@@ -32,12 +32,9 @@ namespace search_server {
         string word;
 
         bool operator==(const Word &other) const { return (word == other.word); }
-
         bool operator<(const Word &r) const { return count < r.count; }
 
         Word(string _word, size_t _count) : word(std::move(_word)), count(_count) {};
-
-        ~Word() = default;
     };
     struct RelativeIndex {
         /** @param max максимальная абсолютная релевантность.*
@@ -106,21 +103,16 @@ namespace search_server {
             документов, в которых они встречаются*
             @param RelativeIndex структура для хранения информации о файле удовлетворяющем поисковому запросу*/
 
-        mutable atomic<bool> work{};
-        size_t time{};
-
-
+        #ifndef TEST_MODE
+        boost::asio::io_context io_context;
+        std::unique_ptr<asio_server::AsioServer> asioServer;
         std::unique_ptr<thread> threadUpdate;
         std::unique_ptr<thread> threadAsio;
-
-        #ifndef TEST_MODE
-        std::unique_ptr<asio_server::AsioServer> asioServer;
-        boost::asio::io_context io_context;
         friend class asio_server::session;
         #endif
 
-
-        mutable std::condition_variable cv;
+        size_t time{};
+        mutable atomic<bool> work{};
         mutable mutex updateM;
         mutable mutex searchM;
         mutable ofstream logFile;
@@ -144,10 +136,10 @@ namespace search_server {
         SearchServer(SearchServer &&) = delete;
         SearchServer& operator=(const SearchServer &) = delete;
         SearchServer& operator=(SearchServer &&) = delete;
+
         #ifndef TEST_MODE
         explicit SearchServer();
         #endif
-
 
     public:
 
@@ -189,6 +181,7 @@ namespace search_server {
             inverted_index::InvertedIndex::getInstance().updateDocumentBase(_docPaths);
         }
         #endif
+
     };
 }
 
