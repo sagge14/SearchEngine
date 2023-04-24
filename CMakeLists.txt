@@ -5,6 +5,8 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
 
+configure_file(${CMAKE_SOURCE_DIR}/config/Settings.json ${CMAKE_CURRENT_BINARY_DIR})
+
 set(BOOST_REQD_SUBMODULES
         "tools/cmake"
         "libs/assert;libs/exception;libs/throw_exception;libs/static_assert"
@@ -63,6 +65,7 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 include(GoogleTest)
+
 enable_testing()
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")

@@ -279,6 +279,10 @@ search_server::SearchServer::SearchServer() :  time{} {
     asioServer = std::make_unique<asio_server::AsioServer>(io_context, Settings::getInstance().asioPort);
     threadAsio = std::make_unique<thread>([this](){io_context.run();});
 
+   // threadUpdate = new thread(periodicUpdate);
+ //   asioServer = new asio_server::AsioServer(io_context, Settings::getInstance().asioPort);
+  //  threadAsio =  new thread([this](){io_context.run();});
+
     threadUpdate->detach();
     threadAsio->detach();
 }
@@ -338,6 +342,10 @@ size_t search_server::SearchServer::getTimeOfUpdate() const {
 search_server::SearchServer& search_server::SearchServer::getInstance() {
     static SearchServer instance;
     return instance;
+}
+search_server::SearchServer::~SearchServer() {
+
+        io_context.stop();
 }
 #endif
 search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& _request, bool _exactSearch)

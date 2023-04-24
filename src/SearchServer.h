@@ -139,6 +139,7 @@ namespace search_server {
 
         #ifndef TEST_MODE
         explicit SearchServer();
+        ~SearchServer();
         #endif
 
     public:
@@ -181,7 +182,6 @@ namespace search_server {
             inverted_index::InvertedIndex::getInstance().updateDocumentBase(_docPaths);
         }
         #endif
-
     };
 }
 

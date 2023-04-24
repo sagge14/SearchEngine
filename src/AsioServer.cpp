@@ -179,6 +179,13 @@ std::string asio_server::session::getTextCommand(COMMAND command) {
     return "";
 }
 
+asio_server::session::~session() {
+
+    boost::system::error_code ec;
+    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+    socket_.close(ec);
+}
+
 void asio_server::AsioServer::do_accept() {
 
     acceptor_.async_accept(
