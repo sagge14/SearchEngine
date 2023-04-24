@@ -36,7 +36,7 @@ FetchContent_Declare(
         GIT_TAG master
         GIT_SUBMODULES ${BOOST_REQD_SUBMODULES}
         GIT_PROGRESS TRUE
-        CONFIGURE_COMMAND ""  # tell CMake it's not a cmake project
+        CONFIGURE_COMMAND ""
 )
 FetchContent_MakeAvailable(Boost)
 

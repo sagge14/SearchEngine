@@ -1,0 +1,20 @@
+{
+  "Files": [
+    "test_files\\7voysinb.txt",
+    "test_files\\1\\be0er.txt",
+    "test_files\\1\\grendel2.txt",
+    "test_files\\1\\hackrfoe.txt",
+    "test_files\\1\\musijoke.txt"
+  ],
+  "config" : {
+    "Name": "mySearchEngine",
+    "Version": "1.1",
+    "dir": "test_files",
+    "text_request": true,
+    "exact_search" : true,
+    "ind_time": 10,
+    "max_response": 5,
+    "asio_port": 15001,
+    "thread_count": 0
+  }
+}

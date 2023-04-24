@@ -1,1 +1,177 @@
-{"Requests":["gulliver","the word","the Boy tree girl","y7434tt4v","boris"]}
+{
+  "Answers": {
+    "b2oris": {
+      "result": false
+    },
+    "b3oris": {
+      "result": false
+    },
+    "bo3ris": {
+      "result": false
+    },
+    "bo4ris": {
+      "result": false
+    },
+    "bo5ris": {
+      "result": false
+    },
+    "bo6ris": {
+      "result": false
+    },
+    "bo7ris": {
+      "result": false
+    },
+    "bo8ris": {
+      "result": false
+    },
+    "bor0is": {
+      "result": false
+    },
+    "bor1is": {
+      "result": false
+    },
+    "bor2is": {
+      "result": false
+    },
+    "bor4is": {
+      "result": false
+    },
+    "bor5is": {
+      "result": false
+    },
+    "bor7is": {
+      "result": false
+    },
+    "bor9is": {
+      "result": false
+    },
+    "bori3s": {
+      "result": false
+    },
+    "bori4s": {
+      "result": false
+    },
+    "bori5s": {
+      "result": false
+    },
+    "bori8s": {
+      "result": false
+    },
+    "boris": {
+      "relevance": [
+        [
+          "test_files\\1112.txt",
+          1.0
+        ],
+        [
+          "test_files\\bard_01.txt",
+          0.04545454680919647
+        ],
+        [
+          "test_files\\bardic3.txt",
+          0.04545454680919647
+        ],
+        [
+          "test_files\\blaklite.txt",
+          0.04545454680919647
+        ],
+        [
+          "test_files\\composer.txt",
+          0.04545454680919647
+        ]
+      ],
+      "result": true
+    },
+    "boris 1": {
+      "relevance": [
+        [
+          "test_files\\ffile5.txt",
+          1.0
+        ],
+        [
+          "test_files\\blaklite.txt",
+          0.2368421107530594
+        ],
+        [
+          "test_files\\ffile3.txt",
+          0.2368421107530594
+        ],
+        [
+          "test_files\\bardic3.txt",
+          0.18421052396297455
+        ],
+        [
+          "test_files\\composer.txt",
+          0.10526315867900848
+        ]
+      ],
+      "result": true
+    },
+    "gulliver year": {
+      "relevance": [
+        [
+          "test_files\\gulliver.txt",
+          1.0
+        ],
+        [
+          "test_files\\composer.txt",
+          0.375
+        ]
+      ],
+      "result": true
+    },
+    "the boy tree girl": {
+      "relevance": [
+        [
+          "test_files\\vgilante.txt",
+          1.0
+        ],
+        [
+          "test_files\\hack11a.txt",
+          0.7417073249816895
+        ],
+        [
+          "test_files\\gulliver.txt",
+          0.7120731472969055
+        ],
+        [
+          "test_files\\cybersla.txt",
+          0.43292683362960815
+        ],
+        [
+          "test_files\\radar_ra.txt",
+          0.41853657364845276
+        ]
+      ],
+      "result": true
+    },
+    "the word": {
+      "relevance": [
+        [
+          "test_files\\vgilante.txt",
+          1.0
+        ],
+        [
+          "test_files\\hack11a.txt",
+          0.7472164630889893
+        ],
+        [
+          "test_files\\e4xtc_a.txt",
+          0.7357151508331299
+        ],
+        [
+          "test_files\\gulliver.txt",
+          0.7157714366912842
+        ],
+        [
+          "test_files\\probchil.txt",
+          0.4826869070529938
+        ]
+      ],
+      "result": true
+    },
+    "y7434tt4v": {
+      "result": false
+    }
+  }
+}
