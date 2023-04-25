@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.25.2)
+set(CMAKE_CXX_STANDARD 20)
+
 project(SearchEngine)
 
 include(FetchContent)
 
-set(CMAKE_CXX_STANDARD 20)
-
 configure_file(${CMAKE_SOURCE_DIR}/config/Settings.json ${CMAKE_CURRENT_BINARY_DIR})
+
+macro(copy_test_files)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/test_files ${CMAKE_CURRENT_BINARY_DIR}/test_files
+            RESULT_VARIABLE ret
+            OUTPUT_VARIABLE out
+            ERROR_VARIABLE  err
+            )
+    if(ret)
+        message(FATAL_ERROR "ERROR ---> could not be copied: ${err}")
+    endif()
+endmacro()
+
+copy_test_files()
 
 set(BOOST_REQD_SUBMODULES
         "tools/cmake"
