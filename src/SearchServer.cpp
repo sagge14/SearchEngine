@@ -119,10 +119,11 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
 
 listAnswer search_server::SearchServer::getAnswer(string& _request) const {
 
-    /** Сначала с помощью атомарной булевой переменной @param work проверяем не осущетвляется ли в данный
+    /** Сначала с помощью 'InvertedIndex::getInstance().work' проверяем не осущетвляется ли в данный
      * момент времени обновление базы индексов (переиндексация файлов, заданных в настройках сервера).
-     * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и раз в 2 секунды
-     * проверяем закончилась ли работа по переиндексации и далее выполняем запрос.
+     * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и пытаемся захватить мьютекс
+     * 'updateM', после удачного захвата мьютекса устанавливаем work = true, чтобы во время выполнения запроса не
+     * началась переиндексация файлов.
      * Для выполнения запроса @param _request сначала получаем с помощью функции @param getUniqWords
      * std::set  состоящий из уникальных слов запроса (разделитель пробел),
      * содержащих только буквы и цифры.*
@@ -134,6 +135,7 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
      * окончательный ответ @param out типа @param listAnswer  в виде списка пар идентификаторов документа (путь
      * или индекс в зависимости от настроек сервера) и относительной релевантности.
      * Размером списока ответов ограничен @param maxResponse.
+     * Устанавливаем work = false, возвращаем результат освобождаем мьютекс 'updateM'
      * */
 
     using namespace inverted_index;
@@ -170,7 +172,7 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
     }
 
     work = false;
-    return out;
+    return std::move(out);
 }
 
 std::set<std::string> search_server::SearchServer::getUniqWords(string& text) {
@@ -191,7 +193,7 @@ std::set<std::string> search_server::SearchServer::getUniqWords(string& text) {
             out.insert(word);
     }
 
-    return out;
+    return std::move(out);
 }
 
 listAnswers search_server::SearchServer::getAllAnswers(vector<string> requests) const {
@@ -212,7 +214,7 @@ listAnswers search_server::SearchServer::getAllAnswers(vector<string> requests) 
             i++;
         }
 
-    return out;
+    return std::move(out);
 }
 
 void search_server::SearchServer::updateDocumentBase() {
@@ -233,9 +235,8 @@ search_server::SearchServer::SearchServer() :  time{} {
         1. для переодического обновления базы индексов @param threadUpdate;
         2. поток асинхронного сервера обрабатывающего запросы клиентов @param threadAsio.
 
-     Потоки проверяют работу друг друга через сответствующие атомарные булевые переменные @param work:
-     их работы никогда не пресекается - запрос из файла не обрабатывается пока не закончится переиндексирование базы.
-     Перендексирование базы не запускается пока сервер обрабатывает запрос.
+     (запрос из файла не обрабатывается пока не закончится переиндексирование базы.
+     Перендексирование базы не запускается пока сервер обрабатывает запрос)
 
      Информация об работе сервера записывается в лог-файл.
      */
@@ -281,8 +282,9 @@ void search_server::SearchServer::trustSettings() const {
     Функция проверяет корректность настроек сервера:
      1. Имя сервера не может быть пустым.
      2. Количество потоков индексирующих базу не может быть отрицательным.
-     3. Файлы для индексирования должны браться либо из папки указанной в @param 'settings.dir'
-        либо напрямую из файла настроек сервера (по умолчанию Settings.json).
+     3. Файлы для индексирования должны браться либо из папки указанной в 'settings.dir'
+        либо напрямую из файла настроек сервера (по умолчанию Settings.json)
+     4. Номер порта не должен быть меньше 0  или больше  65535
     Если настройки не корректны выбрасывается соответствующее исключение. */
 
     auto allFilesNotExist = [](){
@@ -294,12 +296,12 @@ void search_server::SearchServer::trustSettings() const {
         throw(myExp(ErrorCodes::NAME));
     if(Settings::getInstance().threadCount < 0)
         throw(myExp(ErrorCodes::THREADCOUNT));
-    if(Settings::getInstance().asioPort > 65535 || Settings::getInstance().asioPort < 0)
-        throw(myExp(ErrorCodes::ASIOPORT));
     if(!Settings::getInstance().dir.empty() && !filesystem::exists(filesystem::path(Settings::getInstance().dir)))
         throw(myExp(Settings::getInstance().dir));
     if(Settings::getInstance().dir.empty() && (Settings::getInstance().files.empty() || allFilesNotExist()))
         throw(myExp(ErrorCodes::NOTFILESTOINDEX));
+    if(Settings::getInstance().asioPort > 65535 || Settings::getInstance().asioPort < 0)
+        throw(myExp(ErrorCodes::ASIOPORT));
 }
 
 void search_server::SearchServer::addToLog(const string &s) const {

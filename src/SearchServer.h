@@ -12,6 +12,12 @@
 namespace search_server {
 
     using namespace std;
+
+    /** @param setFileInd сет хранящий индексы файлов (хэши путей или порядковые номера файлов) *
+        @param listAnswer лист из пар полный путь файла или его порядковый номер и относительная релевантность *
+        @param listAnswers лист из пар 'listAnswer' соответствующих поисковому запросу (string) *
+        @param ErrorCodes коды ошибок настроек сервера */
+
     typedef set <size_t> setFileInd;
     typedef list <pair<string, float>> listAnswer;
     typedef list <pair<listAnswer, string>> listAnswers;
@@ -23,6 +29,8 @@ namespace search_server {
         NOTFILESTOINDEX,
         ASIOPORT
     };
+    /** @param Word структура, используемая для сортировки слов поиского запроса по количеству*
+    документов, в которых они встречаются*/
     struct Word {
         /** @param count количество документов в которых втречается слово @param word*
             @param word слово из поискового запроса*
@@ -36,11 +44,13 @@ namespace search_server {
 
         Word(string _word, size_t _count) : word(std::move(_word)), count(_count) {};
     };
+    /** @param RelativeIndex структура для хранения информации о файле удовлетворяющем поисковому запросу*/
     struct RelativeIndex {
-        /** @param max максимальная абсолютная релевантность.*
-            @param sum текущая абсолютная релевантность.*
+        /** @param max максимальная абсолютная релевантность *
+            @param sum текущая абсолютная релевантность *
+            @param fileInd хэш пути файла или его порядковый номер *
             @param getRelativeIndex функция для вычисления относительной релевантности*
-            Оператор "<" перегружен для сортировки по убыванию.*/
+            Оператор "<" перегружен для сортировки по убыванию */
 
         inline static size_t max{0};
         size_t sum{0};
@@ -57,13 +67,15 @@ namespace search_server {
         /** @param name имя сервера.
           * @param version версия сервера,
           * @param dir для поиска по всем файлам в дирректории включая подпапки
-          * если параметр пустой, то поиск осуществляется только по файлам указанным в @param files.*
+          * если параметр пустой, то поиск осуществляется только по файлам указанным в @param files *
           * @param exactSearch для установки серевера в режим работы "точного поиска".*
           * @param threadCount устанавливает количество потоков осуществляющих индексирование файлов,
           * если установить значение 0 - то количество потоков будет выбрано автоматически, по количеству ядер процессора.*
-          * @param indTime устанавливает период переиндексации файлов в секундах.*
-          * @param maxResponse устанавливает максимальное количество ответов на запрос.*
-          * @param requestText для отображения в файле ответов вместо идентификаторов запросов текста запросов */
+          * @param indTime устанавливает период переиндексации файлов в секундах *
+          * @param maxResponse устанавливает максимальное количество ответов на запрос *
+          * @param requestText для отображения в файле ответов вместо идентификаторов запросов текста запросов
+          * @param asioPort номер порта на котором будет работать асио-сервер *
+          * */
 
         Settings(const Settings &) = delete;
         Settings(Settings &&) = delete;
@@ -84,8 +96,10 @@ namespace search_server {
         int asioPort = 15001;
         std::vector<std::string> files;
 
-        static Settings& getInstance();
+        /** @param show для отображения настроек сервера*
+            @param getInstance для глобального доступа к единственному экземпляру класса 'Settings' */
 
+        static Settings& getInstance();
         void show() const;
     };
     class SearchServer {
@@ -97,11 +111,7 @@ namespace search_server {
             @param threadUpdate поток запускающий переодическое обновление базы индексов.*
             @param threadJsonSearch поток запускающий обработку запросов из файла "Request.json".*
             @param logFile файл для хранения информации о работе сервера.*
-            @param logMutex мьютекс для разделения доступа между потоками к файлу @param logFile.*
-            @param ErrorCodes класс перечеслений кодов ошибок сервера.*
-            @param Word структура, используемая для сортировки слов поиского запроса по количеству*
-            документов, в которых они встречаются*
-            @param RelativeIndex структура для хранения информации о файле удовлетворяющем поисковому запросу*/
+            @param logMutex мьютекс для разделения доступа между потоками к файлу @param logFile.*/
 
         #ifndef TEST_MODE
         boost::asio::io_context io_context;
@@ -119,12 +129,11 @@ namespace search_server {
         mutable mutex logMutex;
 
         /** @param trustSettings функция проверки корректности настроек сервера.*
-            @param checkHash функция для сравнения хэша последнего и очередного запроса.*
             @param intersectionSetFiles функции возвращающая результат пересечения
             множеств (std::set) файловых индексов файлов содержащих слова из запроса.*
-            @param getUniqWords функция разбиения строки @param text на множество (std::set) слов.*
-            @param getAllFilesFromDir функция получения всех файлов в папке @param dir и во всех ее подпапках.*
-            @param addToLog функция добавление в @param logFile инфрормации о работе сервера.*/
+            @param getUniqWords функция разбиения строки 'text' на множество (std::set) слов.*
+            @param getAllFilesFromDir функция получения всех файлов в папке 'dir' и во всех ее подпапках.*
+            @param addToLog функция добавление в 'logFile' инфрормации о работе сервера.*/
 
         void trustSettings() const;
         setFileInd intersectionSetFiles(const std::set<string> &request) const;
@@ -144,11 +153,11 @@ namespace search_server {
 
     public:
 
-        /** @param getAnswer функция возвращающая результат запроса @param request виде идентификатора
-            файла (пусть или индекс) и соответствующей файлу относительной релевантности.*
-            @param getAllAnswers функция возвращает результаты всех запросов из @param requests.*
-            @param getTimeOfUpdate функция возвращает длительность последнего обновления базы индексов*
-            @param updateDocumentBase функция запуска обновления базы индексов.*
+        /** @param getAnswer функция возвращающая результат запроса 'request' виде идентификатора
+            файла (пусть или индекс) и соответствующей файлу относительной релевантности *
+            @param getAllAnswers функция возвращает результаты всех запросов из 'requests' *
+            @param getTimeOfUpdate функция возвращает длительность последнего обновления базы индексов *
+            @param updateDocumentBase функция запуска обновления базы индексов *
             @param showSettings функция отображения информации о текущих настройках сервера.*
             @param myExp исключения выбрасываемые сервером.*/
 
