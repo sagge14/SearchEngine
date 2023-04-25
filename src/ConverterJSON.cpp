@@ -121,6 +121,9 @@ std::string ConverterJSON::putAnswers(const listAnswers& answers, const std::str
 
 std::vector<std::string> ConverterJSON::getRequestsFromString(const std::string &jsonString) {
 
+    /**
+     Тоже самое что для файла, только для строки. */
+
     std::vector<std::string> requests;
     nh::json jsonRequests;
 

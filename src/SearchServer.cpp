@@ -3,7 +3,6 @@
 //
 #include "SearchServer.h"
 
-
 std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const string& dir) {
     /**
     Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
@@ -20,11 +19,12 @@ std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const s
 
         return _docPaths;
     };
-    return recursiveGetFileNamesByExtension(dir);
+    return std::move(recursiveGetFileNamesByExtension(dir));
 
 }
 
 search_server::setFileInd search_server::SearchServer::intersectionSetFiles(const set<string> &request) const {
+
     /**
      * Если сервер работает в режиме "точного поиска" @param 'settings.exactSearch' ==  true:
      *  В основе работы функции математическое понятие пересечения множеств (std::set)
@@ -58,6 +58,7 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
      *  Просто находим все документы содержащие хотябы одно слово из запроса, обьединяем их в множество
      *  @param setFileInd @param result возвращаем результат :)
      **/
+
     using namespace inverted_index;
     if(request.empty())
         return {};
@@ -117,6 +118,7 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
 }
 
 listAnswer search_server::SearchServer::getAnswer(string& _request) const {
+
     /** Сначала с помощью атомарной булевой переменной @param work проверяем не осущетвляется ли в данный
      * момент времени обновление базы индексов (переиндексация файлов, заданных в настройках сервера).
      * Если работа по переиндексации выполняется то выдаем предупреждающее собщение и раз в 2 секунды
@@ -133,12 +135,14 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
      * или индекс в зависимости от настроек сервера) и относительной релевантности.
      * Размером списока ответов ограничен @param maxResponse.
      * */
+
     using namespace inverted_index;
     work = true;
 
     if(InvertedIndex::getInstance().work)
         std::cout << "Update base is running, pls wait!!!" << endl;
-    updateM.lock();
+
+    lock_guard<mutex> updateUL(updateM) ;
 
     set<std::string> request = getUniqWords(_request);
 
@@ -162,16 +166,8 @@ listAnswer search_server::SearchServer::getAnswer(string& _request) const {
 
         i++;
         if(i == Settings::getInstance().maxResponse)
-        {
-            if(!updateM.try_lock())
-                updateM.unlock();
-
-            work = false;
-            return out;
-        }
+            break;
     }
-
-    updateM.unlock();
 
     work = false;
     return out;
@@ -234,17 +230,14 @@ search_server::SearchServer::SearchServer() :  time{} {
     /**
      В конструкторе сервера импортируется настройки, потом они проверяются функцией @param trustSettings
      на корректность, в случае успеха запускаются 2 потока:
-        1. для переодического обновления базы индексов
-        2. для переодического выполнения запросов, по умолчанию из файла "Request.json"
+        1. для переодического обновления базы индексов @param threadUpdate;
+        2. поток асинхронного сервера обрабатывающего запросы клиентов @param threadAsio.
 
      Потоки проверяют работу друг друга через сответствующие атомарные булевые переменные @param work:
      их работы никогда не пресекается - запрос из файла не обрабатывается пока не закончится переиндексирование базы.
      Перендексирование базы не запускается пока сервер обрабатывает запрос.
-     После окончания переиндексирования базы производится сброс хеша последнего запроса функцией
-     @param checkHash(true), true - как раз передается чтобы сбросить хеш. После этого последний запрос будет обработан
-     заново уже на основе новой базы индексов.
 
-     Информаци об работе сервера записывается в лог-файл.
+     Информация об работе сервера записывается в лог-файл.
      */
 
     auto periodicUpdate = [this]()
@@ -255,7 +248,7 @@ search_server::SearchServer::SearchServer() :  time{} {
             if(work)
                 std::cout << "Doing request, update later!!!" << endl;
 
-            updateM.lock();
+            unique_lock<mutex> updateUL(updateM) ;
 
             this->updateDocumentBase();
             time = getTimeOfUpdate();
@@ -278,10 +271,6 @@ search_server::SearchServer::SearchServer() :  time{} {
     threadUpdate = std::make_unique<thread>(periodicUpdate);
     asioServer = std::make_unique<asio_server::AsioServer>(io_context, Settings::getInstance().asioPort);
     threadAsio = std::make_unique<thread>([this](){io_context.run();});
-
-   // threadUpdate = new thread(periodicUpdate);
- //   asioServer = new asio_server::AsioServer(io_context, Settings::getInstance().asioPort);
-  //  threadAsio =  new thread([this](){io_context.run();});
 
     threadUpdate->detach();
     threadAsio->detach();
@@ -340,12 +329,16 @@ size_t search_server::SearchServer::getTimeOfUpdate() const {
 }
 #ifndef TEST_MODE
 search_server::SearchServer& search_server::SearchServer::getInstance() {
+    /**
+     Функция глобального обращения к единственному экземпляру класса SearchServer,
+      взято у Мейерса*/
     static SearchServer instance;
     return instance;
 }
 search_server::SearchServer::~SearchServer() {
-
-        io_context.stop();
+    /**
+    Без этого деструктор класса иногда завершался ошибкой*/
+    io_context.stop();
 }
 #endif
 search_server::RelativeIndex::RelativeIndex(size_t _fileInd, const set<string>& _request, bool _exactSearch)
@@ -412,6 +405,8 @@ void search_server::Settings::show() const
 }
 
 search_server::Settings::Settings() {
+    /**
+    Упрощенный конструктор для тестов*/
 
     name = "TestServer";
     version = "1.1";
@@ -422,6 +417,9 @@ search_server::Settings::Settings() {
 }
 
 search_server::Settings& search_server::Settings::getInstance() {
+    /**
+    Функция глобального обращения к единственному экземпляру класса Settings,
+     взято у Мейерса*/
 
     static Settings instance;
     return instance;
