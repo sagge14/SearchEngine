@@ -25,11 +25,11 @@ namespace inverted_index {
 
     class hashFunction;
     typedef unordered_map<size_t, size_t> mapEntry;
-    typedef map<size_t, vector<unordered_map<string,mapEntry>::iterator>> mapDictionaryIterators;
+    typedef unordered_map<size_t, vector<unordered_map<string,mapEntry>::iterator>> mapDictionaryIterators;
     typedef unordered_set<pair<size_t, filesystem::file_time_type>, hashFunction> setLastWriteTimeFiles;
 
     class hashFunction {
-        std::time_t toTime_t(filesystem::file_time_type tp) const
+        time_t toTime_t(filesystem::file_time_type tp) const
         {
             return chrono::system_clock::to_time_t(chrono::file_clock::to_sys(tp));
         }
@@ -58,7 +58,7 @@ namespace inverted_index {
 
     public:
         unordered_map<size_t,string> mapHashDocPaths;
-        setLastWriteTimeFiles docPaths2;
+        setLastWriteTimeFiles lastWriteTimeFiles;
 
     public:
         string at(size_t hashFile) const;

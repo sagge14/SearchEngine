@@ -14,8 +14,9 @@
 
 void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _vecPaths, size_t _threadCount)
 {
-    /** Очищаем старую базу индексов формируем новую.
-     во время выполнения переиндексирования устанавливаем  @param work = true. */
+    /** @param ind - set с идентификаторами файлов(хэши путей) подлежащих индексации
+     * @param del - set с идентификаторами файлов(хэши путей) подлежащих удалению из словаря
+     Во время выполнения переиндексирования устанавливаем  @param work = true. */
     work = true;
 
     setLastWriteTimeFiles ind,del;
@@ -27,7 +28,7 @@ void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _ve
     work = false;
 }
 
-void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles& ind, size_t _threadCount) {
+void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles& _ind, size_t _threadCount) {
 /** Индексирование файлов осуществляется в пуле потоков, количество потоков в пуле опеределяется
  * @param _threadCount. - если параметр пуст то выбирается по количеству ядер процессора,
  * если параметр больше количества файлов, то приравнивается количеству файлов. */
@@ -35,21 +36,26 @@ void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles&
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
     threadCount = docPaths.size() < threadCount ? docPaths.size() : threadCount;
 
+    size_t realNewFileCount = _ind.size();
     #ifdef TEST_MODE
     threadCount = 1;
     #endif
 
     auto oneInd = [this](size_t _hashFile)
     {
-        fileIndexing(_hashFile);
+            fileIndexing(_hashFile);
     };
 
     std::unique_ptr<thread_pool> pool = std::make_unique<thread_pool>(threadCount);
 
-    for(auto i:ind)
-        pool->add_task(oneInd,i.first);
+    for(auto i:_ind)
+        if(filesystem::is_regular_file(docPaths.mapHashDocPaths.at(i.first)))
+            pool->add_task(oneInd,i.first);
+        else
+            --realNewFileCount;
 
     pool->wait_all();
+    addToLog("Indexing new\t\t" + to_string(realNewFileCount) + "\tfiles");
 }
 
 void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
@@ -120,7 +126,7 @@ void inverted_index::InvertedIndex::addToLog(const string& _s) const {
 
     lock_guard<mutex> myLock(logMutex);
 
-    logFile.open("log.ini", ios::app);
+    logFile.open("log.log", ios::app);
     logFile << "[" << dataTime << "] " << _s << endl;
     logFile.close();
 
@@ -150,6 +156,7 @@ void inverted_index::InvertedIndex::delFromDictionary(const inverted_index::setL
         }
         wordIts.erase(f.first);
     }
+    addToLog("Delete (change)\t" + to_string(_del.size()) + "\tfiles");
 }
 
 inverted_index::InvertedIndex &inverted_index::InvertedIndex::getInstance() {
@@ -171,14 +178,16 @@ std::tuple<inverted_index::setLastWriteTimeFiles, inverted_index::setLastWriteTi
         inverted_index::DocPaths::getUpdate(const std::vector<std::string> &vecDoc) {
 
     /** Функция возвращающая количество индексируемых файлов*/
-    setLastWriteTimeFiles newFiles,del,ind;
+    setLastWriteTimeFiles newFiles,del,ind,indBuf;
 
     auto myCopy = [](const setLastWriteTimeFiles& first,
                      const setLastWriteTimeFiles& second, setLastWriteTimeFiles& result)
     {
-        copy_if(first.begin(),first.end(),std::inserter(result, result.end()),[&second]
+        copy_if(first.begin(),first.end(),inserter(result, result.end()),[&second]
                 (const auto& item){return !second.contains(item);});
     };
+
+    mapHashDocPaths.clear();
 
     for(const auto& path:vecDoc)
     {
@@ -202,16 +211,19 @@ std::tuple<inverted_index::setLastWriteTimeFiles, inverted_index::setLastWriteTi
         catch(...){}
     }
 
-    thread tInd([&]() { myCopy(newFiles, docPaths2, ind); });
-    thread tDel([&]() { myCopy(docPaths2, newFiles, del); });
+    thread tInd([&]() { myCopy(newFiles, lastWriteTimeFiles, indBuf); });
+    thread tDel([&]() { myCopy(lastWriteTimeFiles, newFiles, del); });
     tInd.join();
     tDel.join();
 
     for(const auto i:del)
         if(mapHashDocPaths.contains(i.first))
-            ind.insert(i);
+            indBuf.insert(i);
 
-    docPaths2 = std::move(newFiles);
+    std::set_difference(indBuf.begin(),indBuf.end(),del.begin(),del.end(),
+                        inserter(ind,ind.begin()));
+
+    lastWriteTimeFiles = std::move(newFiles);
 
     return std::move(make_tuple(ind, del));
 }
