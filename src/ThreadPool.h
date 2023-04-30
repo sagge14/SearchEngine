@@ -19,8 +19,6 @@
 
 class thread_pool {
 
-    void run();
-
     std::queue<std::pair<std::future<void>, int64_t>> q; // очередь задач - хранит функцию(задачу), которую нужно исполнить и номер данной задачи
     std::mutex q_mtx;
     std::condition_variable q_cv;
@@ -31,8 +29,9 @@ class thread_pool {
     std::atomic<bool> quite{ false };  // флаг завершения работы thread_pool
     std::atomic<int64_t> last_idx; // переменная хранящая id который будет выдан следующей задаче
 
+    void run();
+
 public:
-    thread_pool(uint32_t num_threads);
 
     template <typename Func, typename ...Args>
     int64_t add_task(const Func& task_func, Args&&... args) {
@@ -45,14 +44,11 @@ public:
     }
 
     void wait(int64_t task_id);
-
     void wait_all();
-
     bool calculated(int64_t task_id);
 
+    thread_pool(uint32_t num_threads);
     ~thread_pool();
-
-
 };
 
 
