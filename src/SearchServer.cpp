@@ -229,6 +229,7 @@ void search_server::SearchServer::updateDocumentBase() {
 }
 #ifndef TEST_MODE
 search_server::SearchServer::SearchServer() :  time{} {
+
     /**
      В конструкторе сервера импортируется настройки, потом они проверяются функцией @param trustSettings
      на корректность, в случае успеха запускаются 2 потока:
@@ -339,7 +340,7 @@ search_server::SearchServer& search_server::SearchServer::getInstance() {
 }
 search_server::SearchServer::~SearchServer() {
     /**
-    Без этого деструктор класса иногда завершался ошибкой*/
+    Без этого деструктор класса иногда завершался ошибкой, и всё равно иногда продолжает это делать....*/
     io_context.stop();
 }
 #endif
@@ -389,6 +390,9 @@ void search_server::SearchServer::myExp::show() const {
 
 void search_server::Settings::show() const
 {
+    /**
+    Функция для отображения текущих настроек сервера*/
+
     std::cout << "--- Server information ---" << std::endl;
     std::cout << std::endl << "Name:\t\t\t\t" << name << std::endl;
     std::cout << "Version:\t\t\t" << version << std::endl;

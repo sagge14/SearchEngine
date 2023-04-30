@@ -1,22 +1,14 @@
 //
 // Created by user on 01.02.2023.
 //
-#include <iostream>
-#include <utility>
-#include <list>
-#include <execution>
-#include <filesystem>
-#include <chrono>
-#include <algorithm>
-#include <thread>
-#include <atomic>
+#include "ThreadPool.h"
 #include "InvertedIndex.h"
 
 void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _vecPaths, size_t _threadCount)
 {
     /** @param ind - set с идентификаторами файлов(хэши путей) подлежащих индексации
      * @param del - set с идентификаторами файлов(хэши путей) подлежащих удалению из словаря
-     Во время выполнения переиндексирования устанавливаем  @param work = true. */
+     Во время выполнения переиндексирования устанавливаем  @param work = true */
     work = true;
 
     setLastWriteTimeFiles ind,del;
@@ -29,14 +21,17 @@ void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _ve
 }
 
 void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles& _ind, size_t _threadCount) {
-/** Индексирование файлов осуществляется в пуле потоков, количество потоков в пуле опеределяется
- * @param _threadCount. - если параметр пуст то выбирается по количеству ядер процессора,
- * если параметр больше количества файлов, то приравнивается количеству файлов. */
+/**   Функция исключения файлов из базы индексов.
+      Индексирование файлов осуществляется в пуле потоков, количество потоков в пуле опеределяется
+      @param _threadCount. - если параметр пуст то выбирается по количеству ядер процессора,
+      если параметр больше количества файлов, то приравнивается количеству файлов.
+      В сете _ind содержутся индексы (хэши) путей новых, измененных и удаленных файлов, чтобы не индексировать удаленные
+      файлы делается проверка *1 */
 
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
     threadCount = docPaths.size() < threadCount ? docPaths.size() : threadCount;
 
-    size_t realNewFileCount = _ind.size();
+    size_t newFileCount = _ind.size();
     #ifdef TEST_MODE
     threadCount = 1;
     #endif
@@ -46,16 +41,16 @@ void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles&
             fileIndexing(_hashFile);
     };
 
-    std::unique_ptr<thread_pool> pool = std::make_unique<thread_pool>(threadCount);
+    thread_pool pool(threadCount);
 
     for(auto i:_ind)
-        if(filesystem::is_regular_file(docPaths.mapHashDocPaths.at(i.first)))
-            pool->add_task(oneInd,i.first);
+        if(filesystem::is_regular_file(docPaths.mapHashDocPaths.at(i.first))) // (*1)
+            pool.add_task(oneInd,i.first);
         else
-            --realNewFileCount;
+            --newFileCount;
 
-    pool->wait_all();
-    addToLog("Indexing new\t\t" + to_string(realNewFileCount) + "\tfiles");
+    pool.wait_all();
+    addToLog("Indexing new\t\t" + to_string(newFileCount) + "\tfiles");
 }
 
 void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
@@ -111,7 +106,7 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
     for(const auto& item:freqWordFile)
         {
             freqDictionary[item.first].insert(make_pair(_fileHash, freqWordFile.at(item.first)));
-            wordIts[_fileHash].push_back(freqDictionary.find(item.first));
+            dictionaryIterators[_fileHash].push_back(freqDictionary.find(item.first));
         }
 }
 
@@ -145,21 +140,24 @@ inverted_index::mapEntry inverted_index::InvertedIndex::getWordCount(const strin
 }
 
 void inverted_index::InvertedIndex::delFromDictionary(const inverted_index::setLastWriteTimeFiles& _del) {
+    /** Функция исключения файлов из базы индексов */
 
     for(const auto& f:_del)
     {
-        for(auto& i:wordIts[f.first])
+        for(auto& i:dictionaryIterators[f.first])
         {
             i->second.erase(f.first);
             if(i->second.size() == 0)
                 freqDictionary.erase(i->first);
         }
-        wordIts.erase(f.first);
+        dictionaryIterators.erase(f.first);
     }
     addToLog("Delete (change)\t" + to_string(_del.size()) + "\tfiles");
 }
 
 inverted_index::InvertedIndex &inverted_index::InvertedIndex::getInstance() {
+    /** @param getInstance функция глобального обращения к единственному экземпляру класса SearchServer,
+    взято у Мейерса*/
     static InvertedIndex instance;
     return instance;
 }
@@ -178,6 +176,7 @@ std::tuple<inverted_index::setLastWriteTimeFiles, inverted_index::setLastWriteTi
         inverted_index::DocPaths::getUpdate(const std::vector<std::string> &vecDoc) {
 
     /** Функция возвращающая количество индексируемых файлов*/
+
     setLastWriteTimeFiles newFiles,del,ind,indBuf;
 
     auto myCopy = [](const setLastWriteTimeFiles& first,
