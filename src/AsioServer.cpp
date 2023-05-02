@@ -4,6 +4,7 @@
 
 #include "AsioServer.h"
 #include "SearchServer.h"
+#include "Logger.h"
 #include <iostream>
 
 using boost::asio::ip::tcp;
@@ -18,7 +19,7 @@ void asio_server::session::readSocket() {
     auto self(shared_from_this());
 
     //std::cout << "Connect\t\t" + getRemoteIP() << std::endl;
-    SearchServer::getInstance().addToLog("Connect\t\t" + getRemoteIP());
+    Logger::addToLog("Connect\t\t" + getRemoteIP());
 
     socket_.async_read_some(boost::asio::buffer(&header_, sizeof (header)),
                             [this, self](boost::system::error_code ec, std::size_t length)
@@ -26,7 +27,7 @@ void asio_server::session::readSocket() {
                                 if (!ec)
                                 {
                                     //std::cout << "Header read\t" +getRemoteIP() << std::endl;
-                                    SearchServer::getInstance().addToLog("Header read\t" + getRemoteIP()) ;
+                                    Logger::addToLog("Header read\t" + getRemoteIP()) ;
 
                                     if(trustCommand())
                                     {
@@ -36,7 +37,7 @@ void asio_server::session::readSocket() {
                                                                     if (!ec)
                                                                     {
                                                                        // std::cout << "Received from\t" + getRemoteIP() + "\tcommand '" + getTextCommand(header_.command) << std::endl;
-                                                                        SearchServer::getInstance().addToLog("Received from\t" + getRemoteIP() + "\tcommand '" + getTextCommand(header_.command));
+                                                                        Logger::addToLog("Received from\t" + getRemoteIP() + "\tcommand '" + getTextCommand(header_.command));
 
                                                                         commandExec();
                                                                     }
@@ -45,10 +46,10 @@ void asio_server::session::readSocket() {
                                     else
                                     {
                                         header_.command = COMMAND::SOMEERROR;
-                                        SearchServer::getInstance().addToLog("Received from\t" + getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command)+"'");
+                                        Logger::addToLog("Received from\t" + getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command)+"'");
                                         writeHeader();
                                         //std::cout << "Socket off\t" + getRemoteIP() << std::endl;
-                                        SearchServer::getInstance().addToLog("Socket off\t" + getRemoteIP());
+                                        Logger::addToLog("Socket off\t" + getRemoteIP());
                                     }
                                 }
                             });
@@ -138,7 +139,7 @@ void asio_server::session::writeToSocket(const std::string& str) {
                                  if (!ec)
                                  {
 
-                                     search_server::SearchServer::getInstance().addToLog("Request to\t"+ getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command) +"'\tsize " +
+                                     Logger::addToLog("Request to\t"+ getRemoteIP() + "\tcommand\t'" + getTextCommand(header_.command) +"'\tsize " +
                                         std::to_string(header_.size) + "\tbytes");
 
                                      readSocket();

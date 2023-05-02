@@ -2,7 +2,7 @@
 // Created by user on 02.02.2023.
 //
 #include "SearchServer.h"
-
+#include "Logger.h"
 std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const string& dir) {
     /**
     Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
@@ -250,12 +250,14 @@ search_server::SearchServer::SearchServer() :  time{} {
             if(work)
                 std::cout << "Doing request, update later!!!" << endl;
 
+            Logger::addToLog("Index database update started!");
+
             unique_lock<mutex> updateUL(updateM) ;
 
             this->updateDocumentBase();
             time = getTimeOfUpdate();
 
-            addToLog("Index database update completed! "+ to_string(InvertedIndex::getInstance().docPaths.size()) + " files, "
+            Logger::addToLog("Index database update completed! "+ to_string(InvertedIndex::getInstance().docPaths.size()) + " files, "
                      + to_string(InvertedIndex::getInstance().freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
                      + to_string(time) + " milliseconds.");
 
@@ -268,7 +270,7 @@ search_server::SearchServer::SearchServer() :  time{} {
     ConverterJSON::getSettings();
     trustSettings();
 
-    addToLog("Server " + Settings::getInstance().name + " version " + Settings::getInstance().version + " is running!");
+    Logger::addToLog("Server " + Settings::getInstance().name + " version " + Settings::getInstance().version + " is running!");
 
     threadUpdate = std::make_unique<thread>(periodicUpdate);
     asioServer = std::make_unique<asio_server::AsioServer>(io_context, Settings::getInstance().asioPort);
@@ -305,19 +307,6 @@ void search_server::SearchServer::trustSettings() const {
         throw(myExp(ErrorCodes::ASIOPORT));
 }
 
-void search_server::SearchServer::addToLog(const string &s) const {
-    /**
-    Функция для записи информации работе сервера в лог-файл*/
-
-    char dataTime[20];
-    time_t now = std::time(nullptr);
-    strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
-
-    std::lock_guard<std::mutex> myLock(logMutex);
-    logFile.open("log.log", ios::app);
-    logFile << "[" << dataTime << "] " << s + ";" << endl;
-    logFile.close();
-}
 
 void search_server::SearchServer::showSettings() const {
     /**

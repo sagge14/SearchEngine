@@ -109,9 +109,7 @@ namespace search_server {
             для проверки выполнялся ли уже данный завпрос (сравнение только с предыдущим запросом).*
             @param time хранит длительность последнего индексирования файлов.*
             @param threadUpdate поток запускающий переодическое обновление базы индексов.*
-            @param threadJsonSearch поток запускающий обработку запросов из файла "Request.json".*
-            @param logFile файл для хранения информации о работе сервера.*
-            @param logMutex мьютекс для разделения доступа между потоками к файлу @param logFile.*/
+            @param threadJsonSearch поток запускающий обработку запросов из файла "Request.json".*/
 
         #ifndef TEST_MODE
         boost::asio::io_context io_context;
@@ -125,21 +123,17 @@ namespace search_server {
         mutable atomic<bool> work{};
         mutable mutex updateM;
         mutable mutex searchM;
-        mutable ofstream logFile;
-        mutable mutex logMutex;
 
         /** @param trustSettings функция проверки корректности настроек сервера.*
             @param intersectionSetFiles функции возвращающая результат пересечения
             множеств (std::set) файловых индексов файлов содержащих слова из запроса.*
             @param getUniqWords функция разбиения строки 'text' на множество (std::set) слов.*
-            @param getAllFilesFromDir функция получения всех файлов в папке 'dir' и во всех ее подпапках.*
-            @param addToLog функция добавление в 'logFile' инфрормации о работе сервера.*/
+            @param getAllFilesFromDir функция получения всех файлов в папке 'dir' и во всех ее подпапках.*/
 
         void trustSettings() const;
         setFileInd intersectionSetFiles(const std::set<string> &request) const;
         static std::set<string> getUniqWords(string &text);
         static vector<string> getAllFilesFromDir(const basic_string<char> &dir);
-        void addToLog(const string &s) const;
 
         SearchServer(const SearchServer &) = delete;
         SearchServer(SearchServer &&) = delete;

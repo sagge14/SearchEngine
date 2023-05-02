@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25.2)
+cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 20)
 
 project(SearchEngine)
@@ -83,7 +83,7 @@ enable_testing()
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-add_executable(SearchEngine main.cpp ${all_SRCS})
+add_executable(SearchEngine main.cpp ${all_SRCS} src/Logger.cpp src/Logger.h)
 
 target_link_libraries(SearchEngine PUBLIC nlohmann_json::nlohmann_json Boost::asio ws2_32 wsock32)
 

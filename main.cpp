@@ -2,7 +2,9 @@
 #include "SearchServer.h"
 #include "ConverterJSON.h"
 
+
 int main() {
+
     using namespace std;
     try
     {
@@ -39,6 +41,9 @@ int main() {
 
                 for(const auto& result: results)
                     std::cout << result.first << " \trelativeIndex:" << result.second << endl;
+
+
+
 
                 std::cout << "---End---" << endl;
             }

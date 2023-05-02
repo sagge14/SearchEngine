@@ -3,6 +3,7 @@
 //
 #include "ThreadPool.h"
 #include "InvertedIndex.h"
+#include "Logger.h"
 
 void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _vecPaths, size_t _threadCount)
 {
@@ -50,7 +51,7 @@ void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles&
             --newFileCount;
 
     pool.wait_all();
-    addToLog("Indexing new\t\t" + to_string(newFileCount) + "\tfiles");
+    Logger::addToLog("Indexing new\t\t" + to_string(newFileCount) + "\tfiles");
 }
 
 void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
@@ -66,7 +67,7 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
 
     if(!file.is_open())
     {
-        addToLog("File " + docPaths.at(_fileHash) + " - not found!");
+        Logger::addToLog("File " + docPaths.at(_fileHash) + " - not found!");
         return;
     }
 
@@ -110,22 +111,6 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
         }
 }
 
-void inverted_index::InvertedIndex::addToLog(const string& _s) const {
-
-    /**
-    Функция для записи информации в лог-файл*/
-
-    char dataTime[20];
-    time_t now = time(nullptr);
-    strftime( dataTime, sizeof(dataTime),"%H:%M:%S %Y-%m-%d", localtime(&now));
-
-    lock_guard<mutex> myLock(logMutex);
-
-    logFile.open("log.log", ios::app);
-    logFile << "[" << dataTime << "] " << _s << endl;
-    logFile.close();
-
-}
 
 inverted_index::mapEntry inverted_index::InvertedIndex::getWordCount(const string& _s) {
     /** Функция возвращающая @param mapEntry - обьект типа map<size_t,size_t>,
@@ -152,7 +137,7 @@ void inverted_index::InvertedIndex::delFromDictionary(const inverted_index::setL
         }
         dictionaryIterators.erase(f.first);
     }
-    addToLog("Delete (change)\t" + to_string(_del.size()) + "\tfiles");
+    Logger::addToLog("Delete (change)\t" + to_string(_del.size()) + "\tfiles");
 }
 
 inverted_index::InvertedIndex &inverted_index::InvertedIndex::getInstance() {

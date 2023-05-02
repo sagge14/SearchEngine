@@ -4,6 +4,7 @@
 
 #include "ConverterJSON.h"
 #include "SearchServer.h"
+#include "Logger.h"
 
 void ConverterJSON::setSettings(const search_server::Settings &val) {
     /**
@@ -54,11 +55,8 @@ void ConverterJSON::getSettings(const std::string& jsonPath) {
     }
     catch (nh::json::parse_error& ex)
     {
-        std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
-        throw myExp(jsonPath);
-    }
-    catch (...)
-    {
+        std::cerr << "JSON parse error (getSettings) at byte " << ex.byte << std::endl;
+        Logger::addToLog("JSON parse error (getSettings) at byte " + to_string(ex.byte));
         throw myExp(jsonPath);
     }
 }
@@ -80,14 +78,12 @@ std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath)
     }
     catch (nh::json::parse_error& ex)
     {
+        std::cerr << "JSON parse error (getRequests) at byte " << ex.byte << std::endl;
+        Logger::addToLog("JSON parse error (getRequests) at byte " + std::to_string(ex.byte));
         jsonFileRequests.close();
         return std::move(requests);
     }
-    catch (...)
-    {
-        jsonFileRequests.close();
-        return std::move(requests);
-    }
+
 
     jsonRequests.at("Requests").get_to(requests);
 
@@ -133,10 +129,8 @@ std::vector<std::string> ConverterJSON::getRequestsFromString(const std::string 
     }
     catch (nh::json::parse_error& ex)
     {
-        return std::move(requests);
-    }
-    catch (...)
-    {
+        std::cerr << "JSON parse error (getRequestsFromString) at byte " << ex.byte << std::endl;
+        Logger::addToLog("JSON parse error (getRequestsFromString) at byte " + std::to_string(ex.byte));
         return std::move(requests);
     }
 

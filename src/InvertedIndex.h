@@ -91,8 +91,6 @@ namespace inverted_index {
         atomic<bool> work{};
         DocPaths docPaths;
         mutable mutex mapMutex;
-        mutable mutex logMutex;
-        mutable ofstream logFile;
         unordered_map<string, mapEntry> freqDictionary;
         mapDictionaryIterators dictionaryIterators;
 
@@ -101,13 +99,11 @@ namespace inverted_index {
 
         /** @param fileIndexing функция индексирования одного файла
             @param addToDictionary функция включения файлов в базу индексов
-            @param delFromDictionary функция исключения файлов из базы индексов
-            @param addToLog функция добавление в 'logFile' инфрормации о работе сервера */
+            @param delFromDictionary функция исключения файлов из базы индексов */
 
         void fileIndexing(size_t fileHash);
         void addToDictionary(const setLastWriteTimeFiles& ind, size_t threadCount = 0);
         void delFromDictionary(const setLastWriteTimeFiles& del);
-        void addToLog(const string& s) const;
 
         InvertedIndex(const InvertedIndex &) = delete;
         InvertedIndex(InvertedIndex &&) = delete;
