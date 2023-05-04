@@ -47,7 +47,7 @@ public:
     void wait_all();
     bool calculated(int64_t task_id);
 
-    thread_pool(uint32_t num_threads);
+    explicit thread_pool(uint32_t num_threads);
     ~thread_pool();
 };
 

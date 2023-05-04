@@ -132,7 +132,7 @@ void inverted_index::InvertedIndex::delFromDictionary(const inverted_index::setL
         for(auto& i:dictionaryIterators[f.first])
         {
             i->second.erase(f.first);
-            if(i->second.size() == 0)
+            if(i->second.empty())
                 freqDictionary.erase(i->first);
         }
         dictionaryIterators.erase(f.first);

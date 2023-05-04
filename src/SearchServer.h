@@ -56,7 +56,7 @@ namespace search_server {
         size_t sum{0};
         size_t fileInd{0};
 
-        float getRelativeIndex() const { return (float) sum / (float) max; }
+        [[nodiscard]] float getRelativeIndex() const { return (float) sum / (float) max; }
         bool operator==(const RelativeIndex &other) const { return (sum == other.sum);}
         bool operator<(const RelativeIndex &r) const { return sum > r.sum;}
 
@@ -77,13 +77,15 @@ namespace search_server {
           * @param asioPort номер порта на котором будет работать асио-сервер *
           * */
 
+
+        Settings();
+
+    public:
+
         Settings(const Settings &) = delete;
         Settings(Settings &&) = delete;
         Settings& operator=(const Settings &) = delete;
         Settings& operator=(Settings &&) = delete;
-        Settings();
-
-    public:
 
         std::string name;
         std::string version;
@@ -130,15 +132,10 @@ namespace search_server {
             @param getUniqWords функция разбиения строки 'text' на множество (std::set) слов.*
             @param getAllFilesFromDir функция получения всех файлов в папке 'dir' и во всех ее подпапках.*/
 
-        void trustSettings() const;
-        setFileInd intersectionSetFiles(const std::set<string> &request) const;
+        static void trustSettings() ;
+        static setFileInd intersectionSetFiles(const std::set<string> &request) ;
         static std::set<string> getUniqWords(string &text);
         static vector<string> getAllFilesFromDir(const basic_string<char> &dir);
-
-        SearchServer(const SearchServer &) = delete;
-        SearchServer(SearchServer &&) = delete;
-        SearchServer& operator=(const SearchServer &) = delete;
-        SearchServer& operator=(SearchServer &&) = delete;
 
         #ifndef TEST_MODE
         explicit SearchServer();
@@ -146,6 +143,11 @@ namespace search_server {
         #endif
 
     public:
+
+        SearchServer(const SearchServer &) = delete;
+        SearchServer(SearchServer &&) = delete;
+        SearchServer& operator=(const SearchServer &) = delete;
+        SearchServer& operator=(SearchServer &&) = delete;
 
         /** @param getAnswer функция возвращающая результат запроса 'request' виде идентификатора
             файла (пусть или индекс) и соответствующей файлу относительной релевантности *
@@ -171,7 +173,7 @@ namespace search_server {
         listAnswers getAllAnswers(vector<string> requests) const;
         size_t getTimeOfUpdate() const;
         void updateDocumentBase();
-        void showSettings() const;
+        static void showSettings() ;
 
         static SearchServer& getInstance();
 

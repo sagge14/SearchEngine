@@ -23,7 +23,7 @@ std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const s
 
 }
 
-search_server::setFileInd search_server::SearchServer::intersectionSetFiles(const set<string> &request) const {
+search_server::setFileInd search_server::SearchServer::intersectionSetFiles(const set<string> &request) {
 
     /**
      * Если сервер работает в режиме "точного поиска" @param 'settings.exactSearch' ==  true:
@@ -206,11 +206,11 @@ listAnswers search_server::SearchServer::getAllAnswers(vector<string> requests) 
 
     for(auto& request: requests)
         if(Settings::getInstance().requestText)
-            out.push_back(make_pair(getAnswer(request), request));
+            out.emplace_back(getAnswer(request), request);
         else
         {
             string nRequest = i < 10 ? "00" + to_string(i) : i < 100 ? "0" + to_string(i) : to_string(i);
-            out.push_back(make_pair(getAnswer(request), "request" + nRequest));
+            out.emplace_back(getAnswer(request), "request" + nRequest);
             i++;
         }
 
@@ -222,7 +222,7 @@ void search_server::SearchServer::updateDocumentBase() {
     Запускаем обновление базы индексов, записываем в @param time сколько времени уйдет на индексацию. */
 
     using namespace inverted_index;
-    time = inverted_index::perf_timer<chrono::milliseconds>::duration([this]() {
+    time = inverted_index::perf_timer<chrono::milliseconds>::duration([]() {
         InvertedIndex::getInstance().updateDocumentBase(getAllFilesFromDir(Settings::getInstance().dir),
                                                         Settings::getInstance().threadCount);}).count();
 
@@ -249,19 +249,19 @@ search_server::SearchServer::SearchServer() :  time{} {
         {
             if(work)
                 std::cout << "Doing request, update later!!!" << endl;
+            else
+            {
+                Logger::addToLog("Index database update started!");
 
-            Logger::addToLog("Index database update started!");
+                unique_lock<mutex> updateUL(updateM) ;
 
-            unique_lock<mutex> updateUL(updateM) ;
+                this->updateDocumentBase();
+                time = getTimeOfUpdate();
 
-            this->updateDocumentBase();
-            time = getTimeOfUpdate();
-
-            Logger::addToLog("Index database update completed! "+ to_string(InvertedIndex::getInstance().docPaths.size()) + " files, "
-                     + to_string(InvertedIndex::getInstance().freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
-                     + to_string(time) + " milliseconds.");
-
-            updateM.unlock();
+                Logger::addToLog("Index database update completed! "+ to_string(InvertedIndex::getInstance().docPaths.size()) + " files, "
+                                 + to_string(InvertedIndex::getInstance().freqDictionary.size()) + " uniq words in dictionary. " + "Time of update "
+                                 + to_string(time) + " milliseconds.");
+            }
 
             this_thread::sleep_for(std::chrono::seconds(Settings::getInstance().indTime));
         }
@@ -280,7 +280,7 @@ search_server::SearchServer::SearchServer() :  time{} {
     threadAsio->detach();
 }
 #endif
-void search_server::SearchServer::trustSettings() const {
+void search_server::SearchServer::trustSettings() {
     /**
     Функция проверяет корректность настроек сервера:
      1. Имя сервера не может быть пустым.
@@ -308,7 +308,7 @@ void search_server::SearchServer::trustSettings() const {
 }
 
 
-void search_server::SearchServer::showSettings() const {
+void search_server::SearchServer::showSettings() {
     /**
     Для отображения текущих настроек сервера*/
     Settings::getInstance().show();

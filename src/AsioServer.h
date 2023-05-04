@@ -44,12 +44,12 @@ namespace asio_server
         struct header
         {
             uint_fast64_t size{0};
-            COMMAND command{0};
+            COMMAND command{static_cast<COMMAND>(0)};
         };
 
         header header_{};
         tcp::socket socket_;
-        char data_[max_length];
+        char data_[max_length]{};
 
         void readSocket();
         void commandExec();
@@ -65,7 +65,7 @@ namespace asio_server
 
         void start();
 
-        session(tcp::socket socket) : socket_(std::move(socket)){};
+        explicit session(tcp::socket socket) : socket_(std::move(socket)), data_{} {};
         ~session();
     };
 

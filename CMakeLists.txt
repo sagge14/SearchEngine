@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25)
 set(CMAKE_CXX_STANDARD 20)
 
 project(SearchEngine)
@@ -42,6 +42,7 @@ set(BOOST_REQD_SUBMODULES
         )
 
 Set(FETCHCONTENT_QUIET FALSE)
+set(JSON_BuildTests OFF CACHE INTERNAL "")
 
 FetchContent_Declare(
         boost
@@ -53,13 +54,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Boost)
 
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-
 FetchContent_Declare(
         googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
         GIT_TAG        release-1.12.0
 )
+
 FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 
@@ -83,7 +83,7 @@ enable_testing()
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-add_executable(SearchEngine main.cpp ${all_SRCS} src/Logger.cpp src/Logger.h)
+add_executable(SearchEngine main.cpp ${all_SRCS})
 
 target_link_libraries(SearchEngine PUBLIC nlohmann_json::nlohmann_json Boost::asio ws2_32 wsock32)
 

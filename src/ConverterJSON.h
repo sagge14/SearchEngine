@@ -38,9 +38,10 @@ public:
     };
 
 
-    static void setSettings(const search_server::Settings& val);
+    [[maybe_unused]] static void setSettings(const search_server::Settings& val);
     static void getSettings(const std::string& jsonPath = "Settings.json");
-    static std::vector<std::string> getRequests(const std::string& jsonPath = "Requests.json");
+
+    [[maybe_unused]] static std::vector<std::string> getRequests(const std::string& jsonPath = "Requests.json");
     static std::vector<std::string> getRequestsFromString(const std::string& jsonString);
     static std::string putAnswers(const listAnswers& answers, const std::string& jsonPath = "Answers.json");
 };

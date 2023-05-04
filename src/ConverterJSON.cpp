@@ -6,7 +6,7 @@
 #include "SearchServer.h"
 #include "Logger.h"
 
-void ConverterJSON::setSettings(const search_server::Settings &val) {
+[[maybe_unused]] void ConverterJSON::setSettings(const search_server::Settings &val) {
     /**
     Функция записи настроек сервера в json файл. */
 
@@ -61,7 +61,7 @@ void ConverterJSON::getSettings(const std::string& jsonPath) {
     }
 }
 
-std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath) {
+[[maybe_unused]] std::vector<std::string> ConverterJSON::getRequests(const std::string& jsonPath) {
     /**
     функция получения запросов из json файла, адресованных поисковому серверу.
     Если json файла - некорректен или отсутствует возвращается пустой вектор,

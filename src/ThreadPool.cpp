@@ -37,25 +37,25 @@ bool thread_pool::calculated(int64_t task_id) {
 
 thread_pool::~thread_pool() {
     quite = true;
-    for (uint32_t i = 0; i < threads.size(); ++i) {
+    for (auto & thread : threads) {
         q_cv.notify_all();
-        threads[i].join();
+        thread.join();
     }
 }
 
 void thread_pool::run() {
     while (!quite) {
-        std::unique_lock<std::mutex> lock(q_mtx);
-        q_cv.wait(lock, [this]()->bool { return !q.empty() || quite; });
+        std::unique_lock<std::mutex> lock1(q_mtx);
+        q_cv.wait(lock1, [this]()->bool { return !q.empty() || quite; });
 
         if (!q.empty()) {
             auto elem = std::move(q.front());
             q.pop();
-            lock.unlock();
+            lock1.unlock();
 
             elem.first.get();
 
-            std::lock_guard<std::mutex> lock(completed_task_ids_mtx);
+            std::lock_guard<std::mutex> lock2(completed_task_ids_mtx);
             completed_task_ids.insert(elem.second);
 
             completed_task_ids_cv.notify_all();

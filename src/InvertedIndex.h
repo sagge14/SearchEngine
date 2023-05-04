@@ -29,7 +29,7 @@ namespace inverted_index {
     class hashFunction {
         /** класс хзш функции для unordered_map
         */
-        time_t toTime_t(filesystem::file_time_type tp) const
+        [[nodiscard]] static time_t toTime_t(filesystem::file_time_type tp)
         {
             return chrono::system_clock::to_time_t(chrono::file_clock::to_sys(tp));
         }
@@ -70,8 +70,8 @@ namespace inverted_index {
             @param getUpdate функция производящая обновление списка файлов подлежащих индексируванию, отслеживания
             поввления новых файлов и изменения/удаления старых*/
 
-       string at(size_t hashFile) const;
-       size_t size() const;
+       [[nodiscard]] string at(size_t hashFile) const;
+       [[nodiscard]] size_t size() const;
        tuple<setLastWriteTimeFiles, setLastWriteTimeFiles> getUpdate(const vector<string>& vecDoc);
    };
 
@@ -105,13 +105,13 @@ namespace inverted_index {
         void addToDictionary(const setLastWriteTimeFiles& ind, size_t threadCount = 0);
         void delFromDictionary(const setLastWriteTimeFiles& del);
 
+    public:
+
         InvertedIndex(const InvertedIndex &) = delete;
         InvertedIndex(InvertedIndex &&) = delete;
         InvertedIndex& operator=(const InvertedIndex &) = delete;
         InvertedIndex& operator=(InvertedIndex &&) = delete;
         InvertedIndex() = default;
-
-    public:
 
         /**
             @param updateDocumentBase функция запускающая процесс обновления базы индексов.
