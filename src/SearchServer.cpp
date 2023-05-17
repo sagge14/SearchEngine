@@ -2,7 +2,11 @@
 // Created by user on 02.02.2023.
 //
 #include "SearchServer.h"
+#include <thread>
+#ifndef TEST_MODE
 #include "Logger.h"
+#endif
+
 std::vector<std::string> search_server::SearchServer::getAllFilesFromDir(const string& dir) {
     /**
     Функция получения всех файлов из дирректории @param dir и ее подпапках, исключая имена папок */
@@ -70,7 +74,7 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
         setFileInd s;
         for(const auto& z:InvertedIndex::getInstance().freqDictionary.at(word))
             s.insert(z.first);
-        return s;
+        return std::move(s);
     };
 
     for(const auto& word:request)
@@ -88,7 +92,7 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
             auto sSet = getSetFromMap(w.word);
             result.insert(sSet.begin(),sSet.end());
         }
-        return result;
+        return std::move(result);
     }
 
     wordList.sort();
@@ -102,7 +106,7 @@ search_server::setFileInd search_server::SearchServer::intersectionSetFiles(cons
             first = getSetFromMap(wordList.front().word);
         }
         else
-            return result;
+            return std::move(result);
 
         setFileInd intersection;
 

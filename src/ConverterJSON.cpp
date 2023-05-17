@@ -4,7 +4,9 @@
 
 #include "ConverterJSON.h"
 #include "SearchServer.h"
+#ifndef TEST_MODE
 #include "Logger.h"
+#endif
 
 [[maybe_unused]] void ConverterJSON::setSettings(const search_server::Settings &val) {
     /**
@@ -56,7 +58,9 @@ void ConverterJSON::getSettings(const std::string& jsonPath) {
     catch (nh::json::parse_error& ex)
     {
         std::cerr << "JSON parse error (getSettings) at byte " << ex.byte << std::endl;
+        #ifndef TEST_MODE
         Logger::addToLog("JSON parse error (getSettings) at byte " + to_string(ex.byte));
+        #endif
         throw myExp(jsonPath);
     }
 }
@@ -79,7 +83,9 @@ void ConverterJSON::getSettings(const std::string& jsonPath) {
     catch (nh::json::parse_error& ex)
     {
         std::cerr << "JSON parse error (getRequests) at byte " << ex.byte << std::endl;
+        #ifndef TEST_MODE
         Logger::addToLog("JSON parse error (getRequests) at byte " + std::to_string(ex.byte));
+        #endif
         jsonFileRequests.close();
         return std::move(requests);
     }
@@ -130,7 +136,9 @@ std::vector<std::string> ConverterJSON::getRequestsFromString(const std::string 
     catch (nh::json::parse_error& ex)
     {
         std::cerr << "JSON parse error (getRequestsFromString) at byte " << ex.byte << std::endl;
+        #ifndef TEST_MODE
         Logger::addToLog("JSON parse error (getRequestsFromString) at byte " + std::to_string(ex.byte));
+        #endif
         return std::move(requests);
     }
 

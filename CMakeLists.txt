@@ -91,7 +91,7 @@ project(SearchEngine_test)
 
 include_directories(src)
 
-add_executable(SearchEngine_test test_main.cpp src/InvertedIndex.cpp src/SearchServer.cpp src/ConverterJSON.cpp)
+add_executable(SearchEngine_test test_main.cpp src/InvertedIndex.cpp src/SearchServer.cpp src/ConverterJSON.cpp src/ThreadPool.cpp)
 
 target_link_libraries(SearchEngine_test PUBLIC gtest gtest_main nlohmann_json::nlohmann_json)
 
