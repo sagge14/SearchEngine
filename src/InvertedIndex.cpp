@@ -3,7 +3,10 @@
 //
 #include "ThreadPool.h"
 #include "InvertedIndex.h"
+#include <ranges>
+#ifndef TEST_MODE
 #include "Logger.h"
+#endif
 
 void inverted_index::InvertedIndex::updateDocumentBase(const vector<string>& _vecPaths, size_t _threadCount)
 {
@@ -32,11 +35,10 @@ void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles&
     size_t threadCount = _threadCount ? _threadCount : thread::hardware_concurrency();
     threadCount = docPaths.size() < threadCount ? docPaths.size() : threadCount;
 
-    size_t newFileCount = _ind.size();
     #ifdef TEST_MODE
     threadCount = 1;
     #endif
-
+    size_t newFileCount = _ind.size();
     auto oneInd = [this](size_t _hashFile)
     {
             fileIndexing(_hashFile);
@@ -45,17 +47,24 @@ void inverted_index::InvertedIndex::addToDictionary(const setLastWriteTimeFiles&
     thread_pool pool(threadCount);
 
     for(auto i:_ind)
-        if(filesystem::is_regular_file(docPaths.mapHashDocPaths.at(i.first))) // (*1)
+        #ifndef TEST_MODE
+        if( filesystem::is_regular_file(docPaths.mapHashDocPaths.at(i.first))) // (*1)
+        #else
+        if(true)
+        #endif
             pool.add_task(oneInd,i.first);
         else
             --newFileCount;
 
     pool.wait_all();
+    #ifndef TEST_MODE
     Logger::addToLog("Indexing new\t\t" + to_string(newFileCount) + "\tfiles");
+    #endif
 }
 
 void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
 {
+
     /** Если @param  TEST_MODE = true, то @param docPaths используется не как
      * база путей индексируемых файлов, а как база самих файлов (строк)
      * Из текста удаляются все символы кроме букв и цифр,
@@ -64,41 +73,38 @@ void inverted_index::InvertedIndex::fileIndexing(size_t _fileHash)
 
     #ifndef TEST_MODE
     ifstream file(docPaths.at(_fileHash));
-
     if(!file.is_open())
     {
         Logger::addToLog("File " + docPaths.at(_fileHash) + " - not found!");
         return;
     }
-
-    string text((istreambuf_iterator<char>(file)), (istreambuf_iterator<char>()));
-
-    file.close();
     #endif
 
     #ifdef TEST_MODE
     string text(docPaths.at(_fileHash));
+    istringstream file(text);
     #endif
 
     map<string, size_t> freqWordFile;
 
-    transform(text.begin(), text.end(), text.begin(), [](char c){
-        return isalnum(c) ? tolower(c) : (' '); });
-
-    istringstream iss(text);
-    string word;
-
-    while(iss)
+    auto wordRange = std::ranges::istream_view<string>(file) | std::views::transform ([](const string& text)
     {
-        iss >> word;
-        if (iss)
-        {
-            if(auto item = freqWordFile.find(word); item != freqWordFile.end())
-                item->second++;
-            else
-                freqWordFile[word] = 1;
-        }
-    }
+        string s;
+        for(auto c:text)
+            if(std::isalnum(c))
+                s.push_back((char) std::tolower(c));
+        return s;
+    });
+
+    std::ranges::for_each(wordRange, [&freqWordFile](auto&& word)
+                          {
+                              if(auto item = freqWordFile.find(word); item != freqWordFile.end())
+                                  item->second++;
+                              else
+                                  freqWordFile[word] = 1;
+                          }
+    );
+
 
     if(freqWordFile.empty())
         return;
@@ -137,7 +143,10 @@ void inverted_index::InvertedIndex::delFromDictionary(const inverted_index::setL
         }
         dictionaryIterators.erase(f.first);
     }
+
+    #ifndef TEST_MODE
     Logger::addToLog("Delete (change)\t" + to_string(_del.size()) + "\tfiles");
+    #endif
 }
 
 inverted_index::InvertedIndex &inverted_index::InvertedIndex::getInstance() {
