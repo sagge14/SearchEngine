@@ -209,9 +209,9 @@ std::tuple<inverted_index::setLastWriteTimeFiles, inverted_index::setLastWriteTi
     tInd.join();
     tDel.join();
 
-    for(const auto i:del)
+    /*for(const auto i:del)
         if(mapHashDocPaths.contains(i.first))
-            indBuf.insert(i);
+            indBuf.insert(i);*/
 
     std::set_difference(indBuf.begin(),indBuf.end(),del.begin(),del.end(),
                         inserter(ind,ind.begin()));
